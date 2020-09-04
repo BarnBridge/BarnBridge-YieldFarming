@@ -1,0 +1,9 @@
+node_modules
+
+# Buidler files
+cache
+artifacts
+
+# Coverage
+coverage
+coverage.json

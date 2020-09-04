@@ -1,0 +1,38 @@
+{
+  "name": "barnbridge-yieldfarming",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "buidler test",
+    "coverage": "npx buidler coverage --network coverage",
+    "lint": "npm run lint:js && npm run lint:sol",
+    "lint:fix": "npm run lint:js:fix",
+    "lint:js": "eslint .",
+    "lint:js:fix": "eslint . --fix",
+    "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\""
+  },
+  "author": "BarnBridge",
+  "license": "Apache-2",
+  "devDependencies": {
+    "@nomiclabs/buidler": "^1.4.4",
+    "@nomiclabs/buidler-ethers": "^2.0.0",
+    "@nomiclabs/buidler-waffle": "^2.0.0",
+    "@openzeppelin/contracts": "^3.1.0",
+    "bignumber.js": "^9.0.0",
+    "buidler-gas-reporter": "^0.1.3",
+    "chai": "^4.2.0",
+    "chai-bignumber": "^3.0.0",
+    "eslint": "^6.8.0",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-mocha-no-only": "^1.1.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "ethereum-waffle": "^3.1.0",
+    "ethers": "^5.0.9",
+    "solhint": "^3.2.0",
+    "solidity-coverage": "^0.7.10"
+  }
+}
