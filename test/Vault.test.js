@@ -36,14 +36,16 @@ describe('Vault', function () {
         expect(await vault.owner()).to.equal(ownerAddr)
     })
 
-    describe('Stake', function () {
+    describe('Deposit', function () {
         it('Reverts if not executed by owner', async function () {
-            await expect(vault.stake(erc20Mock.address, 100, userAddr)).to.be.reverted
+            await expect(
+                vault.deposit(userAddr, erc20Mock.address, 100),
+            ).to.be.revertedWith('Ownable: caller is not the owner')
         })
 
         it('Reverts if amount is <= 0', async function () {
             await expect(
-                vault.connect(owner).stake(erc20Mock.address, 0, userAddr),
+                vault.connect(owner).deposit(userAddr, erc20Mock.address, 0),
             ).to.be.revertedWith('Vault: Amount must be greater than 0.')
         })
 
@@ -52,17 +54,17 @@ describe('Vault', function () {
             // no allowance
 
             await expect(
-                vault.connect(owner).stake(erc20Mock.address, amount, userAddr),
+                vault.connect(owner).deposit(userAddr, erc20Mock.address, amount),
             ).to.be.revertedWith('Vault: Token allowance should be greater than or equal to the amount staked.')
         })
 
-        it('Saves users stake in state', async function () {
+        it('Saves users deposit in state', async function () {
             await erc20Mock.mint(userAddr, amount)
             await erc20Mock.connect(user).approve(vault.address, amount)
 
-            await vault.connect(owner).stake(erc20Mock.address, amount, userAddr)
+            await vault.connect(owner).deposit(userAddr, erc20Mock.address, amount)
 
-            const balance = await vault.stakeBalanceOf(userAddr, erc20Mock.address)
+            const balance = await vault.balanceOf(userAddr, erc20Mock.address)
 
             expect(balance.toString()).to.be.equal(amount.toString())
         })
@@ -71,7 +73,7 @@ describe('Vault', function () {
             await erc20Mock.mint(userAddr, amount)
             await erc20Mock.connect(user).approve(vault.address, amount)
 
-            await vault.connect(owner).stake(erc20Mock.address, amount, userAddr)
+            await vault.connect(owner).deposit(userAddr, erc20Mock.address, amount)
 
             expect(await erc20Mock.transferFromCalled()).to.be.true
         })
@@ -79,35 +81,39 @@ describe('Vault', function () {
 
     describe('Withdraw', function () {
         it('Reverts if not executed by owner', async function () {
-            await expect(vault.withdraw(erc20Mock.address, userAddr)).to.be.reverted
+            await expect(
+                vault.withdraw(erc20Mock.address, userAddr),
+            ).to.be.revertedWith('Ownable: caller is not the owner')
         })
 
-        it('Reverts if user has no stake', async function () {
-            await expect(vault.connect(owner).withdraw(erc20Mock.address, userAddr)).to.be.reverted
+        it('Reverts if user has no balance', async function () {
+            await expect(
+                vault.connect(owner).withdraw(erc20Mock.address, userAddr),
+            ).to.be.revertedWith('Vault: User has empty balance')
         })
 
-        it('Sets the stake of the user to 0', async function () {
-            // set-up the stake
+        it('Sets the balance of the user to 0', async function () {
+            // set-up the balance sheet
             await erc20Mock.mint(userAddr, amount)
             await erc20Mock.connect(user).approve(vault.address, amount)
-            await vault.connect(owner).stake(erc20Mock.address, amount, userAddr)
+            await vault.connect(owner).deposit(userAddr, erc20Mock.address, amount)
 
             // call withdraw
-            await vault.connect(owner).withdraw(erc20Mock.address, userAddr)
+            await vault.connect(owner).withdraw(userAddr, erc20Mock.address)
 
-            const balance = await vault.stakeBalanceOf(userAddr, erc20Mock.address)
+            const balance = await vault.balanceOf(userAddr, erc20Mock.address)
 
             expect(balance.toString()).to.be.equal('0')
         })
 
         it('Calls the `transfer` function on token when all conditions are met', async function () {
-            // set-up the stake
+            // set-up the balance sheet
             await erc20Mock.mint(userAddr, amount)
             await erc20Mock.connect(user).approve(vault.address, amount)
-            await vault.connect(owner).stake(erc20Mock.address, amount, userAddr)
+            await vault.connect(owner).deposit(userAddr, erc20Mock.address, amount)
 
             // call withdraw
-            await vault.connect(owner).withdraw(erc20Mock.address, userAddr)
+            await vault.connect(owner).withdraw(userAddr, erc20Mock.address)
 
             expect(await erc20Mock.transferCalled()).to.be.true
             expect(await erc20Mock.transferRecipient()).to.be.equal(userAddr)
