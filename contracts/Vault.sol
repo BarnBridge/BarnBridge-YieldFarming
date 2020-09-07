@@ -18,10 +18,10 @@ contract Vault is Ownable {
      * Stores `amount` of `tokenAddress` tokens for the `user` into the vault
      */
     function deposit(address user, IERC20 token, uint256 amount) public onlyOwner {
-        require(amount > 0, "Vault: Amount must be greater than 0.");
+        require(amount > 0, "Vault: Amount must be > 0");
 
         uint256 allowance = token.allowance(user, address(this));
-        require(allowance >= amount, "Vault: Token allowance should be greater than or equal to the amount staked.");
+        require(allowance >= amount, "Vault: Token allowance too small");
 
         balances[user][address(token)] = amount;
 
