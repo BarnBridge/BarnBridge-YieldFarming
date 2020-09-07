@@ -31,4 +31,13 @@ contract Vault is Ownable {
     function stakeBalanceOf(address user, address token) public view returns (uint256) {
         return stakes[user][token];
     }
+
+    function withdraw(IERC20 token, address user) public onlyOwner {
+        require(stakes[user][address(token)] > 0, "Vault: User has no stake");
+
+        uint256 stakedAmount = stakes[user][address(token)];
+        stakes[user][address(token)] = 0;
+
+        token.transfer(user, stakedAmount);
+    }
 }

@@ -1,15 +1,14 @@
-const { expect, use } = require('chai')
+const { expect } = require('chai')
 const { ethers } = require('@nomiclabs/buidler')
 
-const BigNumber = ethers.BigNumber
-
-use(require('chai-bignumber')())
+const BN = ethers.BigNumber
 
 describe('Vault', function () {
     let vault
     let erc20Mock
     let owner, user
     let ownerAddr, userAddr
+    const amount = BN.from(100).mul(BN.from(10).pow(18))
 
     beforeEach(async function () {
         const [creator, ownerSigner, userSigner] = await ethers.getSigners()
@@ -37,19 +36,18 @@ describe('Vault', function () {
         expect(await vault.owner()).to.equal(ownerAddr)
     })
 
-    describe('stake', function () {
-        it('reverts if not executed by owner', async function () {
+    describe('Stake', function () {
+        it('Reverts if not executed by owner', async function () {
             await expect(vault.stake(erc20Mock.address, 100, userAddr)).to.be.reverted
         })
 
-        it('should only allow amount greater than 0', async function () {
+        it('Reverts if amount is <= 0', async function () {
             await expect(
                 vault.connect(owner).stake(erc20Mock.address, 0, userAddr),
             ).to.be.revertedWith('Vault: Amount must be greater than 0.')
         })
 
-        it('should revert if amount > allowance', async function () {
-            const amount = BigNumber.from(100).mul(BigNumber.from(10).pow(18))
+        it('Reverts if amount > allowance', async function () {
             await erc20Mock.mint(userAddr, amount)
             // no allowance
 
@@ -58,8 +56,7 @@ describe('Vault', function () {
             ).to.be.revertedWith('Vault: Token allowance should be greater than or equal to the amount staked.')
         })
 
-        it('saves users stake in state', async function () {
-            const amount = BigNumber.from(100).mul(BigNumber.from(10).pow(18))
+        it('Saves users stake in state', async function () {
             await erc20Mock.mint(userAddr, amount)
             await erc20Mock.connect(user).approve(vault.address, amount)
 
@@ -67,17 +64,54 @@ describe('Vault', function () {
 
             const balance = await vault.stakeBalanceOf(userAddr, erc20Mock.address)
 
-            expect(balance.toString()).to.equal(amount.toString())
+            expect(balance.toString()).to.be.equal(amount.toString())
         })
 
-        it('should call transferFrom when conditions are met', async function () {
-            const amount = BigNumber.from(100).mul(BigNumber.from(10).pow(18))
+        it('Calls transferFrom when conditions are met', async function () {
             await erc20Mock.mint(userAddr, amount)
             await erc20Mock.connect(user).approve(vault.address, amount)
 
             await vault.connect(owner).stake(erc20Mock.address, amount, userAddr)
 
             expect(await erc20Mock.transferFromCalled()).to.be.true
+        })
+    })
+
+    describe('Withdraw', function () {
+        it('Reverts if not executed by owner', async function () {
+            await expect(vault.withdraw(erc20Mock.address, userAddr)).to.be.reverted
+        })
+
+        it('Reverts if user has no stake', async function () {
+            await expect(vault.connect(owner).withdraw(erc20Mock.address, userAddr)).to.be.reverted
+        })
+
+        it('Sets the stake of the user to 0', async function () {
+            // set-up the stake
+            await erc20Mock.mint(userAddr, amount)
+            await erc20Mock.connect(user).approve(vault.address, amount)
+            await vault.connect(owner).stake(erc20Mock.address, amount, userAddr)
+
+            // call withdraw
+            await vault.connect(owner).withdraw(erc20Mock.address, userAddr)
+
+            const balance = await vault.stakeBalanceOf(userAddr, erc20Mock.address)
+
+            expect(balance.toString()).to.be.equal('0')
+        })
+
+        it('Calls the `transfer` function on token when all conditions are met', async function () {
+            // set-up the stake
+            await erc20Mock.mint(userAddr, amount)
+            await erc20Mock.connect(user).approve(vault.address, amount)
+            await vault.connect(owner).stake(erc20Mock.address, amount, userAddr)
+
+            // call withdraw
+            await vault.connect(owner).withdraw(erc20Mock.address, userAddr)
+
+            expect(await erc20Mock.transferCalled()).to.be.true
+            expect(await erc20Mock.transferRecipient()).to.be.equal(userAddr)
+            expect((await erc20Mock.transferAmount()).toString()).to.be.equal(amount.toString())
         })
     })
 })
