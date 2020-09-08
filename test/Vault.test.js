@@ -46,7 +46,7 @@ describe('Vault', function () {
         it('Reverts if amount is <= 0', async function () {
             await expect(
                 vault.connect(owner).deposit(userAddr, erc20Mock.address, 0),
-            ).to.be.revertedWith('Vault: Amount must be greater than 0')
+            ).to.be.revertedWith('Vault: Amount must be > 0')
         })
 
         it('Reverts if amount > allowance', async function () {
