@@ -10,7 +10,7 @@ contract Vault is AccessControl {
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
     /*
-     *
+     * Assigns the DEFAULT_ADMIN_ROLE to `_admin` and MANAGER_ROLE to each one of the `users` specified
      */
     constructor (address _admin, address[] memory users) public {
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
