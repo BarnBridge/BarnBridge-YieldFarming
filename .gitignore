@@ -7,3 +7,9 @@ artifacts
 # Coverage
 coverage
 coverage.json
+
+# Local settings
+config.js
+
+# IDE settings
+.idea/
