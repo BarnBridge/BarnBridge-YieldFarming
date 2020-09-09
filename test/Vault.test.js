@@ -39,6 +39,12 @@ describe('Vault', function () {
         expect(await vault.hasRole(MANAGER_ROLE, managerAddr)).to.be.true
     })
 
+    it('Allows adding other managers', async function () {
+        await vault.connect(admin).grantRole(MANAGER_ROLE, userAddr)
+
+        expect(await vault.hasRole(MANAGER_ROLE, userAddr)).to.be.true
+    })
+
     describe('Deposit', function () {
         it('Reverts if not executed by owner', async function () {
             await expect(
