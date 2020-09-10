@@ -17,13 +17,14 @@ contract Vault is Ownable {
     /*
      * Stores `amount` of `tokenAddress` tokens for the `user` into the vault
      */
-    function deposit(address user, IERC20 token, uint256 amount) public onlyOwner {
+    function deposit(address user, address tokenAddress, uint256 amount) public onlyOwner {
         require(amount > 0, "Vault: Amount must be > 0");
 
+        IERC20 token = IERC20(tokenAddress);
         uint256 allowance = token.allowance(user, address(this));
         require(allowance >= amount, "Vault: Token allowance too small");
 
-        balances[user][address(token)] = amount;
+        balances[user][tokenAddress] = amount;
 
         token.transferFrom(user, address(this), amount);
     }
@@ -36,14 +37,15 @@ contract Vault is Ownable {
     }
 
     /*
-     * Removes the deposit of the user and sends the amount of `token` back to the `user`
+     * Removes the deposit of the user and sends the amount of `tokenAddress` back to the `user`
      */
-    function withdraw(address user, IERC20 token) public onlyOwner {
-        require(balances[user][address(token)] > 0, "Vault: User has empty balance");
+    function withdraw(address user, address tokenAddress) public onlyOwner {
+        require(balances[user][tokenAddress] > 0, "Vault: User has empty balance");
 
-        uint256 amount = balances[user][address(token)];
-        balances[user][address(token)] = 0;
+        uint256 amount = balances[user][tokenAddress];
+        balances[user][tokenAddress] = 0;
 
+        IERC20 token = IERC20(tokenAddress);
         token.transfer(user, amount);
     }
 }
