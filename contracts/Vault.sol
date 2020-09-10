@@ -28,7 +28,7 @@ contract Vault is Ownable {
         token.transferFrom(user, address(this), amount);
     }
 
-    /*
+    /*npx oz link @openzeppelin/contracts-ethereum-package
      * Returns the amount of `token` that the `user` has currently staked
      */
     function balanceOf(address user, address token) public view returns (uint256) {
