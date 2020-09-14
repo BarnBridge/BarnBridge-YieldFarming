@@ -4,7 +4,7 @@ pragma solidity ^0.6.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IStake {
-    function getEpoch(uint timestamp) external view returns (uint epoch); // get epoch id
-    function getEpochBalance(uint epoch, address token, address user) external returns(uint);
-    function getEpochPoolSize(uint epoch, address coin) external returns (uint);
+    function getEpochId(uint timestamp) external view returns (uint); // get epoch id
+    function getEpochUserBalance(uint epoch, address user, address token) external returns(uint);
+    function getEpochPoolSize(uint epoch, address token) external returns (uint);
 }
