@@ -331,6 +331,20 @@ describe('Staking', function () {
                 expect(await getEpochUserBalance(userAddr, 2)).to.be.equal('0')
                 expect(await getEpochUserBalance(userAddr, 3)).to.be.equal('0')
             })
+
+            it('multiple deposits in same epoch', async function () {
+                await moveAtEpoch(1)
+                await deposit(user, amount)
+                await deposit(user, amount)
+
+                await staking.manualEpochInit([erc20Mock.address], 0)
+                await staking.manualEpochInit([erc20Mock.address], 1)
+
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 2)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochPoolSize(1)).to.be.equal('0')
+                expect(await getEpochPoolSize(2)).to.be.equal(amount.mul(2).toString())
+            })
         })
     })
 
@@ -361,7 +375,10 @@ describe('Staking', function () {
     }
 
     async function setNextBlockTimestamp (timestamp) {
-        await ethers.provider.send('evm_setNextBlockTimestamp', [timestamp])
+        const block = await ethers.provider.send('eth_getBlockByNumber', ['latest', false])
+        const currentTs = block.timestamp
+        const diff = timestamp - currentTs
+        await ethers.provider.send('evm_increaseTime', [diff])
     }
 
     async function moveAtEpoch (epoch) {
