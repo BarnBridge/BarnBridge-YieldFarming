@@ -61,7 +61,7 @@ contract YieldFarm {
 
     // public methods
 
-    function harvest (uint8[] epochs) public {
+    function harvest (uint8[] calldata epochs) public {
 
     }
 
@@ -82,7 +82,7 @@ contract YieldFarm {
 
     }
 
-    function _getPoolSize (uint8 epochId) internal view {
+    function _getPoolSize (uint8 epochId) internal view returns (uint) {
         uint valueUsdc = _staking.getEpochPoolSize(epochId, _usdc);
         uint valueSusd = _staking.getEpochPoolSize(epochId, _susd);
         uint valueDai = _staking.getEpochPoolSize(epochId, _dai);
@@ -91,7 +91,7 @@ contract YieldFarm {
         return valueUsdc.add(valueSusd).add(valueDai).add(valueBarnYCurve);
     }
 
-    function _getUserBalancePerEpoch (uint8 epochId, address userAddress) internal view {
+    function _getUserBalancePerEpoch (uint8 epochId, address userAddress) internal view returns (uint){
         uint valueUsdc = _staking.getEpochUserBalance(epochId, userAddress, _usdc);
         uint valueSusd = _staking.getEpochUserBalance(epochId, userAddress, _susd);
         uint valueDai = _staking.getEpochUserBalance(epochId, userAddress, _dai);

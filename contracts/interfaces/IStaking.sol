@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IStaking {
     function getEpochId(uint timestamp) external view returns (uint); // get epoch id
-    function getEpochUserBalance(uint epoch, address user, address token) external returns(uint);
-    function getEpochPoolSize(uint epoch, address token) external returns (uint);
-    function getEpoch1Start() external returns (uint);
+    function getEpochUserBalance(uint epoch, address user, address token) external view returns(uint);
+    function getEpochPoolSize(uint epoch, address token) external view returns (uint);
+    function getEpoch1Start() external view returns (uint);
 }
