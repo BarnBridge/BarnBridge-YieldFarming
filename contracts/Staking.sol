@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract Staking {
     // timestamp for the epoch 1
     // everything before that is considered epoch 0 which won't have a reward but allows for the initial stake
-    uint256 epoch1Start;
+    uint256 public epoch1Start;
 
     // duration of each epoch
     uint256 epochDuration;
