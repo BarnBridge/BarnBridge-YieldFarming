@@ -9,8 +9,13 @@ describe('Staking', function () {
     let owner, user
     let ownerAddr, userAddr
     const amount = BN.from(100).mul(BN.from(10).pow(18))
+    let snapshotId
+
+    const epochDuration = 1000
 
     beforeEach(async function () {
+        snapshotId = await ethers.provider.send('evm_snapshot')
+
         const [creator, ownerSigner, userSigner] = await ethers.getSigners()
         owner = ownerSigner
         ownerAddr = await owner.getAddress()
@@ -20,12 +25,16 @@ describe('Staking', function () {
 
         const Staking = await ethers.getContractFactory('Staking', creator)
 
-        staking = await Staking.deploy(Math.floor(Date.now() / 1000) + 1000, 1000)
+        staking = await Staking.deploy(Math.floor(Date.now() / 1000) + 1000, epochDuration)
         await staking.deployed()
 
         const ERC20Mock = await ethers.getContractFactory('ERC20Mock')
         erc20Mock = await ERC20Mock.deploy()
         await erc20Mock.deployed()
+    })
+
+    afterEach(async function () {
+        await ethers.provider.send('evm_revert', [snapshotId])
     })
 
     it('Can deploy successfully', async function () {
@@ -78,7 +87,6 @@ describe('Staking', function () {
         })
 
         it('Updates the user balance of the next epoch', async function () {
-            const snapshotId = await ethers.provider.send('evm_snapshot')
             await erc20Mock.mint(userAddr, amount.mul(10))
             await erc20Mock.connect(user).approve(staking.address, amount.mul(10))
 
@@ -110,8 +118,6 @@ describe('Staking', function () {
             expect(
                 (await staking.getEpochUserBalance(userAddr, erc20Mock.address, 0)).toString(),
             ).to.be.equal('0')
-
-            await ethers.provider.send('evm_revert', [snapshotId])
         })
     })
 
@@ -151,29 +157,215 @@ describe('Staking', function () {
             expect((await erc20Mock.transferAmount()).toString()).to.be.equal(amount.toString())
         })
 
-        it('xxx', async function () {
-            await erc20Mock.mint(userAddr, amount)
-            await erc20Mock.connect(user).approve(staking.address, amount)
+        describe('epoch logic', function () {
+            beforeEach(async function () {
+                await erc20Mock.mint(userAddr, amount.mul(10))
+                await erc20Mock.mint(ownerAddr, amount.mul(10))
+                await erc20Mock.connect(user).approve(staking.address, amount.mul(10))
+                await erc20Mock.connect(owner).approve(staking.address, amount.mul(10))
+            })
 
-            // todo: figure out why time travel does not work as expected here
+            it('deposit in epoch 0, deposit in epoch 1, deposit in epoch 2, withdraw in epoch 3', async function () {
+                // epoch 0
+                await setNextBlockTimestamp(getCurrentUnix() + 15)
+                await deposit(user, amount)
 
-            // console.log(await staking.getCurrentEpoch())
-            //
-            // // epoch 0 -> deposit amount
-            // // it will initialize epoch 0 and 1
-            // await staking.connect(user).deposit(erc20Mock.address, amount)
-            //
-            // console.log(await staking.getCurrentEpoch())
-            //
-            // // move forward to epoch 2
-            // await ethers.provider.send('evm_increaseTime', [2010])
-            // await ethers.provider.send('evm_mine')
-            //
-            // console.log(await staking.getCurrentEpoch())
-            //
-            // expect(
-            //     (await staking.getEpochUserBalance(userAddr, erc20Mock.address, 2)).toString(),
-            // ).to.be.equal('0')
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 0)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+
+                await moveAtEpoch(1)
+                await deposit(user, amount)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.toString())
+                expect(await getEpochPoolSize(2)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochUserBalance(userAddr, 0)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 2)).to.be.equal(amount.mul(2).toString())
+
+                await moveAtEpoch(2)
+                await deposit(user, amount)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.toString())
+                expect(await getEpochPoolSize(2)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochPoolSize(3)).to.be.equal(amount.mul(3).toString())
+                expect(await getEpochUserBalance(userAddr, 0)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 2)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochUserBalance(userAddr, 3)).to.be.equal(amount.mul(3).toString())
+
+                await moveAtEpoch(3)
+                await staking.connect(user).withdraw(erc20Mock.address)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.toString())
+                expect(await getEpochPoolSize(2)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochPoolSize(3)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 0)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 2)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochUserBalance(userAddr, 3)).to.be.equal('0')
+            })
+
+            it('deposit in epoch 0, withdraw in epoch 3', async function () {
+                // epoch 0
+                await setNextBlockTimestamp(getCurrentUnix() + 15)
+                await deposit(user, amount)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 0)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+
+                await staking.manualEpochInit([erc20Mock.address], 2)
+
+                await moveAtEpoch(3)
+                await staking.connect(user).withdraw(erc20Mock.address)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.toString())
+                expect(await getEpochPoolSize(2)).to.be.equal(amount.toString())
+                expect(await getEpochPoolSize(3)).to.be.equal('0')
+            })
+
+            it('deposit in epoch 0, withdraw in epoch 0', async function () {
+                // epoch 0
+                await setNextBlockTimestamp(getCurrentUnix() + 15)
+                await deposit(user, amount)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 0)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+
+                await staking.connect(user).withdraw(erc20Mock.address)
+
+                expect(await getEpochPoolSize(1)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 0)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal('0')
+            })
+
+            it('deposit in epoch 3, withdraw in epoch 3', async function () {
+                await moveAtEpoch(3)
+                await deposit(user, amount)
+
+                await staking.manualEpochInit([erc20Mock.address], 0)
+                await staking.manualEpochInit([erc20Mock.address], 1)
+                await staking.manualEpochInit([erc20Mock.address], 2)
+                await staking.manualEpochInit([erc20Mock.address], 3)
+
+                expect(await getEpochPoolSize(3)).to.be.equal('0')
+                expect(await getEpochPoolSize(4)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 3)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 4)).to.be.equal(amount.toString())
+
+                await staking.connect(user).withdraw(erc20Mock.address)
+
+                expect(await getEpochPoolSize(3)).to.be.equal('0')
+                expect(await getEpochPoolSize(4)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 3)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 4)).to.be.equal('0')
+            })
+
+            it('deposit in epoch 2, withdraw in epoch 3', async function () {
+                await moveAtEpoch(2)
+                await deposit(user, amount)
+
+                await staking.manualEpochInit([erc20Mock.address], 0)
+                await staking.manualEpochInit([erc20Mock.address], 1)
+                await staking.manualEpochInit([erc20Mock.address], 2)
+
+                expect(await getEpochPoolSize(2)).to.be.equal('0')
+                expect(await getEpochPoolSize(3)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 2)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 3)).to.be.equal(amount.toString())
+
+                await moveAtEpoch(3)
+                await staking.connect(user).withdraw(erc20Mock.address)
+
+                expect(await getEpochPoolSize(2)).to.be.equal('0')
+                expect(await getEpochPoolSize(3)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 2)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 3)).to.be.equal('0')
+            })
+
+            it('multiple users deposit', async function () {
+                await setNextBlockTimestamp(getCurrentUnix() + 15)
+                await deposit(owner, amount)
+                await deposit(user, amount)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochUserBalance(ownerAddr, 1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+            })
+
+            it('multiple users deposit epoch 0 then 1 withdraw epoch 1', async function () {
+                await setNextBlockTimestamp(getCurrentUnix() + 15)
+                await deposit(owner, amount)
+                await deposit(user, amount)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochUserBalance(ownerAddr, 1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+
+                await moveAtEpoch(1)
+                await staking.connect(user).withdraw(erc20Mock.address)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(ownerAddr, 1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal('0')
+            })
+
+            it('multiple users deposit epoch 0 then 1 withdraw epoch 2', async function () {
+                await setNextBlockTimestamp(getCurrentUnix() + 15)
+                await deposit(owner, amount)
+                await deposit(user, amount)
+
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochUserBalance(ownerAddr, 1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+
+                await moveAtEpoch(2)
+                await staking.connect(user).withdraw(erc20Mock.address)
+                expect(await getEpochPoolSize(1)).to.be.equal(amount.mul(2).toString())
+                expect(await getEpochPoolSize(2)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(ownerAddr, 1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(ownerAddr, 2)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
+                expect(await getEpochUserBalance(userAddr, 2)).to.be.equal('0')
+                expect(await getEpochUserBalance(userAddr, 3)).to.be.equal('0')
+            })
         })
     })
+
+    async function deposit (u, x) {
+        return await staking.connect(u).deposit(erc20Mock.address, x)
+    }
+
+    async function getEpochPoolSize (epochId) {
+        return (await staking.getEpochPoolSize(erc20Mock.address, epochId)).toString()
+    }
+
+    async function getEpochUserBalance (u, epochId) {
+        return (await staking.getEpochUserBalance(u, erc20Mock.address, epochId)).toString()
+    }
+
+    // eslint-disable-next-line no-unused-vars
+    async function getCurrentEpoch () {
+        return (await staking.getCurrentEpoch()).toString()
+    }
+
+    // eslint-disable-next-line no-unused-vars
+    async function currentBlockNumber () {
+        return await ethers.provider.getBlockNumber()
+    }
+
+    function getCurrentUnix () {
+        return Math.floor(Date.now() / 1000)
+    }
+
+    async function setNextBlockTimestamp (timestamp) {
+        await ethers.provider.send('evm_setNextBlockTimestamp', [timestamp])
+    }
+
+    async function moveAtEpoch (epoch) {
+        await setNextBlockTimestamp(getCurrentUnix() + epochDuration * epoch)
+        await ethers.provider.send('evm_mine')
+    }
 })

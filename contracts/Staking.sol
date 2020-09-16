@@ -2,6 +2,7 @@
 pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@nomiclabs/buidler/console.sol";
 
 contract Staking {
     // timestamp for the epoch 1
@@ -13,15 +14,20 @@ contract Staking {
 
     mapping(address => mapping(address => uint256)) private balances;
 
+    struct Pool {
+        uint256 size;
+        bool set;
+    }
+
     // for each token, we store the total pool size
-    mapping(address => mapping(uint256 => uint256)) private poolSize;
+    mapping(address => mapping(uint256 => Pool)) private poolSize;
 
     struct Checkpoint {
         uint256 epochId;
         uint256 balance;
     }
 
-    // balanceCheckpoints[user][token][epochId]
+    // balanceCheckpoints[user][token][]
     mapping(address => mapping(address => Checkpoint[])) private balanceCheckpoints;
 
     /*
@@ -48,14 +54,20 @@ contract Staking {
 
         // epoch logic
         uint256 currentEpoch = getCurrentEpoch();
+        uint256 nextEpoch = currentEpoch + 1;
 
         // update the next epoch pool size
-        poolSize[tokenAddress][currentEpoch + 1] = token.balanceOf(address(this));
+        Pool storage pNextEpoch = poolSize[tokenAddress][nextEpoch];
+        pNextEpoch.size = token.balanceOf(address(this));
+        pNextEpoch.set = true;
 
-        // update the user's balance for the next epoch to his current balance
-        updateCheckpoints(balanceCheckpoints[msg.sender][tokenAddress], currentEpoch + 1, balances[msg.sender][tokenAddress]);
+        Checkpoint[] storage checkpoints = balanceCheckpoints[msg.sender][tokenAddress];
+        if ((checkpoints.length == 0) || (checkpoints[checkpoints.length - 1].epochId != nextEpoch)){
+            checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
+        } else {
+            checkpoints[checkpoints.length - 1].balance = balances[msg.sender][tokenAddress];
+        }
     }
-
 
     /*
      * Removes the deposit of the user and sends the amount of `tokenAddress` back to the `user`
@@ -73,22 +85,37 @@ contract Staking {
         uint256 currentEpoch = getCurrentEpoch();
 
         if (!epochIsInitialized(tokenAddress, currentEpoch)) {
-            address[] storage tokens;
-            tokens.push(tokenAddress);
+            address[] memory tokens = new address[](1);
+            tokens[0] = tokenAddress;
             manualEpochInit(tokens, currentEpoch);
         }
 
         // decrease the balance this user contributed to the poolSize at the beginning of the current epoch == the epoch balance of previous epoch
-        poolSize[tokenAddress][currentEpoch] -= getEpochUserBalance(msg.sender, tokenAddress, currentEpoch - 1);
+        poolSize[tokenAddress][currentEpoch].size -= getEpochUserBalance(msg.sender, tokenAddress, currentEpoch);
 
         // update the pool size of the next epoch to its current balance
-        poolSize[tokenAddress][currentEpoch + 1] = token.balanceOf(address(this));
+        Pool storage pNextEpoch = poolSize[tokenAddress][currentEpoch + 1];
+        pNextEpoch.size = token.balanceOf(address(this));
+        pNextEpoch.set = true;
 
         // remove any contribution for the user in the current epoch
-        updateCheckpoints(balanceCheckpoints[msg.sender][tokenAddress], currentEpoch, 0);
+        Checkpoint[] storage checkpoints = balanceCheckpoints[msg.sender][tokenAddress];
+        uint256 last = checkpoints.length - 1;
 
-        // remove any contribution for the user in the next epoch
-        updateCheckpoints(balanceCheckpoints[msg.sender][tokenAddress], currentEpoch + 1, 0);
+        // note: it's impossible to have a withdraw and no checkpoints because the balance would be 0 and revert
+
+        // there was a deposit in an older epoch (more than 1 behind [eg: previous 0, now 5]) but no other action since then
+        if (checkpoints[last].epochId < currentEpoch) {
+            checkpoints.push(Checkpoint(currentEpoch, 0));
+        }
+        // there was a deposit in the `epochId - 1` epoch => we have a checkpoint for the current epoch
+        else if (checkpoints[last].epochId == currentEpoch) {
+            checkpoints[last].balance = 0;
+        }
+        // there was a deposit in the current epoch
+        else {
+            checkpoints[last].balance = 0;
+        }
     }
 
     function getEpochUserBalance(address user, address token, uint256 epochId) public view returns (uint256) {
@@ -122,16 +149,24 @@ contract Staking {
 
     function manualEpochInit(address[] memory tokens, uint256 epochId) public {
         for (uint i = 0; i < tokens.length; i++) {
-            require(!epochIsInitialized(tokens[0], epochId), "Staking: epoch already initialized");
-            require(epochIsInitialized(tokens[0], epochId - 1), "Staking: previous epoch not initialized");
+            Pool storage p = poolSize[tokens[i]][epochId];
 
-            poolSize[tokens[i]][epochId] = poolSize[tokens[i]][epochId - 1];
+            if (epochId == 0) {
+                p.size = uint256(0);
+                p.set = true;
+            } else {
+                require(!epochIsInitialized(tokens[0], epochId), "Staking: epoch already initialized");
+                require(epochIsInitialized(tokens[0], epochId - 1), "Staking: previous epoch not initialized");
+
+                p.size = poolSize[tokens[i]][epochId - 1].size;
+                p.set = true;
+            }
         }
     }
 
     /*
-  * Returns the amount of `token` that the `user` has currently staked
-  */
+     * Returns the amount of `token` that the `user` has currently staked
+     */
     function balanceOf(address user, address token) public view returns (uint256) {
         return balances[user][token];
     }
@@ -147,23 +182,10 @@ contract Staking {
     function getEpochPoolSize(address token, uint256 epochId) public view returns (uint256) {
         require(epochIsInitialized(token, epochId), "Staking: epoch not initialized");
 
-        return poolSize[token][epochId];
+        return poolSize[token][epochId].size;
     }
 
     function epochIsInitialized(address token, uint256 epochId) internal view returns (bool) {
-        return poolSize[token][epochId] > 0;
-    }
-
-
-    function updateCheckpoints(Checkpoint[] storage checkpoints, uint256 epochId, uint256 value) internal {
-        if ((checkpoints.length == 0) || (checkpoints[checkpoints.length - 1].epochId < epochId)) {
-            Checkpoint storage newCheckPoint;
-            newCheckPoint.epochId = epochId;
-            newCheckPoint.balance = value;
-
-            checkpoints.push(newCheckPoint);
-        } else {
-            checkpoints[checkpoints.length - 1].balance = value;
-        }
+        return poolSize[token][epochId].set;
     }
 }
