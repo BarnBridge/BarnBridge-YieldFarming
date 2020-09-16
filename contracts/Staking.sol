@@ -56,16 +56,32 @@ contract Staking {
         uint256 currentEpoch = getCurrentEpoch();
         uint256 nextEpoch = currentEpoch + 1;
 
+        if (!epochIsInitialized(tokenAddress, currentEpoch)) {
+            address[] memory tokens = new address[](1);
+            tokens[0] = tokenAddress;
+            manualEpochInit(tokens, currentEpoch);
+        }
+
         // update the next epoch pool size
         Pool storage pNextEpoch = poolSize[tokenAddress][nextEpoch];
         pNextEpoch.size = token.balanceOf(address(this));
         pNextEpoch.set = true;
 
         Checkpoint[] storage checkpoints = balanceCheckpoints[msg.sender][tokenAddress];
-        if ((checkpoints.length == 0) || (checkpoints[checkpoints.length - 1].epochId != nextEpoch)){
+        if (checkpoints.length == 0) {
+            checkpoints.push(Checkpoint(currentEpoch, 0));
             checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
         } else {
-            checkpoints[checkpoints.length - 1].balance = balances[msg.sender][tokenAddress];
+            uint256 last = checkpoints.length - 1;
+
+            if (checkpoints[last].epochId < currentEpoch) {
+                checkpoints.push(Checkpoint(currentEpoch, checkpoints[last].balance));
+                checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
+            } else if (checkpoints[last].epochId == currentEpoch) {
+                checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
+            } else {
+                checkpoints[checkpoints.length - 1].balance = balances[msg.sender][tokenAddress];
+            }
         }
     }
 
@@ -114,6 +130,11 @@ contract Staking {
         }
         // there was a deposit in the current epoch
         else {
+            // there was also a deposit in the previous epoch
+            if (last >= 1 && checkpoints[last-1].epochId == currentEpoch) {
+                checkpoints[last-1].balance = 0;
+            }
+
             checkpoints[last].balance = 0;
         }
     }
