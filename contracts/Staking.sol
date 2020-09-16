@@ -2,9 +2,11 @@
 pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@nomiclabs/buidler/console.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract Staking {
+    using SafeMath for uint256;
+
     // timestamp for the epoch 1
     // everything before that is considered epoch 0 which won't have a reward but allows for the initial stake
     uint256 public epoch1Start;
@@ -48,7 +50,7 @@ contract Staking {
         uint256 allowance = token.allowance(msg.sender, address(this));
         require(allowance >= amount, "Staking: Token allowance too small");
 
-        balances[msg.sender][tokenAddress] += amount;
+        balances[msg.sender][tokenAddress] = balances[msg.sender][tokenAddress].add(amount);
 
         token.transferFrom(msg.sender, address(this), amount);
 
@@ -107,7 +109,7 @@ contract Staking {
         }
 
         // decrease the balance this user contributed to the poolSize at the beginning of the current epoch == the epoch balance of previous epoch
-        poolSize[tokenAddress][currentEpoch].size -= getEpochUserBalance(msg.sender, tokenAddress, currentEpoch);
+        poolSize[tokenAddress][currentEpoch].size = poolSize[tokenAddress][currentEpoch].size.sub(getEpochUserBalance(msg.sender, tokenAddress, currentEpoch));
 
         // update the pool size of the next epoch to its current balance
         Pool storage pNextEpoch = poolSize[tokenAddress][currentEpoch + 1];
