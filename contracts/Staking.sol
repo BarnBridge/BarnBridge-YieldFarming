@@ -2,9 +2,12 @@
 pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@nomiclabs/buidler/console.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Staking {
+contract Staking is ReentrancyGuard {
+    using SafeMath for uint256;
+
     // timestamp for the epoch 1
     // everything before that is considered epoch 0 which won't have a reward but allows for the initial stake
     uint256 public epoch1Start;
@@ -41,20 +44,25 @@ contract Staking {
     /*
      * Stores `amount` of `tokenAddress` tokens for the `user` into the vault
      */
-    function deposit(address tokenAddress, uint256 amount) public {
+    function deposit(address tokenAddress, uint256 amount) public nonReentrant {
         require(amount > 0, "Staking: Amount must be > 0");
 
         IERC20 token = IERC20(tokenAddress);
         uint256 allowance = token.allowance(msg.sender, address(this));
         require(allowance >= amount, "Staking: Token allowance too small");
 
-        balances[msg.sender][tokenAddress] += amount;
-
         token.transferFrom(msg.sender, address(this), amount);
+        balances[msg.sender][tokenAddress] = balances[msg.sender][tokenAddress].add(amount);
 
         // epoch logic
         uint256 currentEpoch = getCurrentEpoch();
         uint256 nextEpoch = currentEpoch + 1;
+
+        if (!epochIsInitialized(tokenAddress, currentEpoch)) {
+            address[] memory tokens = new address[](1);
+            tokens[0] = tokenAddress;
+            manualEpochInit(tokens, currentEpoch);
+        }
 
         // update the next epoch pool size
         Pool storage pNextEpoch = poolSize[tokenAddress][nextEpoch];
@@ -62,24 +70,32 @@ contract Staking {
         pNextEpoch.set = true;
 
         Checkpoint[] storage checkpoints = balanceCheckpoints[msg.sender][tokenAddress];
-        if ((checkpoints.length == 0) || (checkpoints[checkpoints.length - 1].epochId != nextEpoch)){
+        if (checkpoints.length == 0) {
+            checkpoints.push(Checkpoint(currentEpoch, 0));
             checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
         } else {
-            checkpoints[checkpoints.length - 1].balance = balances[msg.sender][tokenAddress];
+            uint256 last = checkpoints.length - 1;
+
+            if (checkpoints[last].epochId < currentEpoch) {
+                checkpoints.push(Checkpoint(currentEpoch, checkpoints[last].balance));
+                checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
+            } else if (checkpoints[last].epochId == currentEpoch) {
+                checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
+            } else {
+                checkpoints[checkpoints.length - 1].balance = balances[msg.sender][tokenAddress];
+            }
         }
     }
 
     /*
      * Removes the deposit of the user and sends the amount of `tokenAddress` back to the `user`
      */
-    function withdraw(address tokenAddress) public {
+    function withdraw(address tokenAddress) public nonReentrant {
         require(balances[msg.sender][tokenAddress] > 0, "Staking: User has empty balance");
 
-        uint256 amount = balances[msg.sender][tokenAddress];
-        balances[msg.sender][tokenAddress] = 0;
-
         IERC20 token = IERC20(tokenAddress);
-        token.transfer(msg.sender, amount);
+        token.transfer(msg.sender, balances[msg.sender][tokenAddress]);
+        balances[msg.sender][tokenAddress] = 0;
 
         // epoch logic
         uint256 currentEpoch = getCurrentEpoch();
@@ -91,7 +107,7 @@ contract Staking {
         }
 
         // decrease the balance this user contributed to the poolSize at the beginning of the current epoch == the epoch balance of previous epoch
-        poolSize[tokenAddress][currentEpoch].size -= getEpochUserBalance(msg.sender, tokenAddress, currentEpoch);
+        poolSize[tokenAddress][currentEpoch].size = poolSize[tokenAddress][currentEpoch].size.sub(getEpochUserBalance(msg.sender, tokenAddress, currentEpoch));
 
         // update the pool size of the next epoch to its current balance
         Pool storage pNextEpoch = poolSize[tokenAddress][currentEpoch + 1];
@@ -114,6 +130,11 @@ contract Staking {
         }
         // there was a deposit in the current epoch
         else {
+            // there was also a deposit in the previous epoch
+            if (last >= 1 && checkpoints[last-1].epochId == currentEpoch) {
+                checkpoints[last-1].balance = 0;
+            }
+
             checkpoints[last].balance = 0;
         }
     }
