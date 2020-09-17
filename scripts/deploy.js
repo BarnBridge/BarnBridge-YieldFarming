@@ -2,12 +2,12 @@ const { ethers } = require('@nomiclabs/buidler')
 
 async function main () {
     // We get the contract to deploy
-    const Vault = await ethers.getContractFactory('Vault')
-    const vault = await Vault.deploy('0x0') // todo: add the address of the owner here
+    const Staking = await ethers.getContractFactory('Staking')
+    const staking = await Staking.deploy(1600300800, 3600) // todo: add the epoch1Start and epoch duration
 
-    await vault.deployed()
+    await staking.deployed()
 
-    console.log('Vault deployed to:', vault.address)
+    console.log('Staking contract deployed to:', staking.address)
 }
 
 main()
