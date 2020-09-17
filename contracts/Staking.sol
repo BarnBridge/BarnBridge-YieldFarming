@@ -3,8 +3,9 @@ pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Staking {
+contract Staking is ReentrancyGuard {
     using SafeMath for uint256;
 
     // timestamp for the epoch 1
@@ -43,16 +44,15 @@ contract Staking {
     /*
      * Stores `amount` of `tokenAddress` tokens for the `user` into the vault
      */
-    function deposit(address tokenAddress, uint256 amount) public {
+    function deposit(address tokenAddress, uint256 amount) public nonReentrant {
         require(amount > 0, "Staking: Amount must be > 0");
 
         IERC20 token = IERC20(tokenAddress);
         uint256 allowance = token.allowance(msg.sender, address(this));
         require(allowance >= amount, "Staking: Token allowance too small");
 
-        balances[msg.sender][tokenAddress] = balances[msg.sender][tokenAddress].add(amount);
-
         token.transferFrom(msg.sender, address(this), amount);
+        balances[msg.sender][tokenAddress] = balances[msg.sender][tokenAddress].add(amount);
 
         // epoch logic
         uint256 currentEpoch = getCurrentEpoch();
@@ -90,14 +90,12 @@ contract Staking {
     /*
      * Removes the deposit of the user and sends the amount of `tokenAddress` back to the `user`
      */
-    function withdraw(address tokenAddress) public {
+    function withdraw(address tokenAddress) public nonReentrant {
         require(balances[msg.sender][tokenAddress] > 0, "Staking: User has empty balance");
 
-        uint256 amount = balances[msg.sender][tokenAddress];
-        balances[msg.sender][tokenAddress] = 0;
-
         IERC20 token = IERC20(tokenAddress);
-        token.transfer(msg.sender, amount);
+        token.transfer(msg.sender, balances[msg.sender][tokenAddress]);
+        balances[msg.sender][tokenAddress] = 0;
 
         // epoch logic
         uint256 currentEpoch = getCurrentEpoch();
