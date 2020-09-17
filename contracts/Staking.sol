@@ -3,9 +3,8 @@ pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Staking is ReentrancyGuard {
+contract Staking {
     using SafeMath for uint256;
 
     // timestamp for the epoch 1
@@ -13,7 +12,7 @@ contract Staking is ReentrancyGuard {
     uint256 public epoch1Start;
 
     // duration of each epoch
-    uint256 epochDuration;
+    uint256 public epochDuration;
 
     mapping(address => mapping(address => uint256)) private balances;
 
@@ -44,15 +43,16 @@ contract Staking is ReentrancyGuard {
     /*
      * Stores `amount` of `tokenAddress` tokens for the `user` into the vault
      */
-    function deposit(address tokenAddress, uint256 amount) public nonReentrant {
+    function deposit(address tokenAddress, uint256 amount) public {
         require(amount > 0, "Staking: Amount must be > 0");
 
         IERC20 token = IERC20(tokenAddress);
         uint256 allowance = token.allowance(msg.sender, address(this));
         require(allowance >= amount, "Staking: Token allowance too small");
 
-        token.transferFrom(msg.sender, address(this), amount);
         balances[msg.sender][tokenAddress] = balances[msg.sender][tokenAddress].add(amount);
+
+        token.transferFrom(msg.sender, address(this), amount);
 
         // epoch logic
         uint256 currentEpoch = getCurrentEpoch();
@@ -90,12 +90,14 @@ contract Staking is ReentrancyGuard {
     /*
      * Removes the deposit of the user and sends the amount of `tokenAddress` back to the `user`
      */
-    function withdraw(address tokenAddress) public nonReentrant {
+    function withdraw(address tokenAddress) public {
         require(balances[msg.sender][tokenAddress] > 0, "Staking: User has empty balance");
 
-        IERC20 token = IERC20(tokenAddress);
-        token.transfer(msg.sender, balances[msg.sender][tokenAddress]);
+        uint256 amount = balances[msg.sender][tokenAddress];
         balances[msg.sender][tokenAddress] = 0;
+
+        IERC20 token = IERC20(tokenAddress);
+        token.transfer(msg.sender, amount);
 
         // epoch logic
         uint256 currentEpoch = getCurrentEpoch();
@@ -131,8 +133,8 @@ contract Staking is ReentrancyGuard {
         // there was a deposit in the current epoch
         else {
             // there was also a deposit in the previous epoch
-            if (last >= 1 && checkpoints[last-1].epochId == currentEpoch) {
-                checkpoints[last-1].balance = 0;
+            if (last >= 1 && checkpoints[last - 1].epochId == currentEpoch) {
+                checkpoints[last - 1].balance = 0;
             }
 
             checkpoints[last].balance = 0;
