@@ -6,13 +6,14 @@ describe('YieldFarm', function () {
     let staking, erc20Mock
     let owner, user, userAddr, ownerAddr
     let barnBridge, usdc, susd, dai, barnYCurve
+    const distributedAmount = ethers.BigNumber.from(800000).mul(ethers.BigNumber.from(10).pow(18))
     // let barnBridge = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
     // let usdc = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
     // let susd = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
     // let dai = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
     // let barnYCurve = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
     let snapshotId
-    const epochDuration = 1000
+    const epochDuration = 604800
 
     const amount = ethers.BigNumber.from(100).mul(ethers.BigNumber.from(10).pow(18))
     beforeEach (async function () {
@@ -67,15 +68,23 @@ describe('YieldFarm', function () {
     // describe("Harvest", async function () {
     //     console.log(this.usdc)
 
-    it ("get epoch1 pool size", async function () {
+    it ("Get epoch PoolSize and distribute tokens", async function () {
         await depositUsdc(amount)
         await depositSUsd(amount)
         await depositDai(amount)
         await depositBarn(amount)
-        moveAtEpoch(2)
+        await barnBridge.mint(userAddr, distributedAmount)
+        await barnBridge.connect(user).transfer(yieldFarm.address, distributedAmount)
+        moveAtEpoch(3)
         // await staking.manualEpochInit([usdc.address], 0)
         // await staking.manualEpochInit([usdc.address], 1)
-        expect(await yieldFarm.getPoolSize(1)).to.equal(amount.mul(55).div(10))
+        const totalAmount = amount.mul(55).div(10)
+        expect(await yieldFarm.getPoolSize(1)).to.equal(totalAmount)
+        expect(await yieldFarm.getEpochStake(userAddr, 1)).to.equal(totalAmount)
+        expect(await barnBridge.balanceOf(yieldFarm.address)).to.equal(distributedAmount)
+        expect(await yieldFarm.getCurrentEpoch()).to.equal(3)
+        await yieldFarm.connect(user).harvest(1)
+        expect(await barnBridge.balanceOf(userAddr)).to.equal(distributedAmount.div(24))
     })
 
     function getCurrentUnix () {

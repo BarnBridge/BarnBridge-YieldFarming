@@ -63,14 +63,22 @@ contract YieldFarm is ReentrancyGuardUpgradeSafe {
 
     // public methods
 
-    function harvest (uint[] calldata harvestEpochs) public nonReentrant {
-        for(uint i=0; i<harvestEpochs.length; i++) {
-            _harvest(harvestEpochs[i]);
+    function harvestEpochs (uint[] calldata userEpochs) public {
+        for(uint i=0; i<userEpochs.length; i++) {
+            _harvest(userEpochs[i]);
         }
+    }
+
+    function harvest (uint epochId) public {
+        _harvest(epochId);
     }
 
     function getPoolSize (uint epochId) external view returns (uint) {
         return _getPoolSize(epochId);
+    }
+
+    function getCurrentEpoch () external view returns (uint) {
+        return _getEpochId();
     }
 
     function getEpochStake (address userAddress, uint epochId) external view returns (uint) {
@@ -83,7 +91,7 @@ contract YieldFarm is ReentrancyGuardUpgradeSafe {
 
     function _harvest (uint epochId) internal  {
         // check that epoch is finished
-        assert (_getEpochId() > epochId);
+        require (_getEpochId() > epochId, "This epoch is in the future");
 
         Epoch storage epoch = epochs[epochId];
         require (epoch.claimed[msg.sender] != true, "User already claimed");
@@ -93,7 +101,7 @@ contract YieldFarm is ReentrancyGuardUpgradeSafe {
             epoch.init = true;
         }
         // Give user interest
-        uint userInterest = TOTAL_DISTRIBUTED_AMOUNT.mul(18).div(NR_OF_EPOCHS)
+        uint userInterest = TOTAL_DISTRIBUTED_AMOUNT.mul(10**18).div(NR_OF_EPOCHS)
                 .mul(_getUserBalancePerEpoch(msg.sender, epochId))
                 .div(epoch.poolSize);
         epoch.claimed[msg.sender] = true;
@@ -120,7 +128,10 @@ contract YieldFarm is ReentrancyGuardUpgradeSafe {
     }
 
     function _getEpochId () internal view returns (uint epochId) {
-        epochId = uint((block.timestamp - epochStart)/EPOCH_DURATION);
+        if (block.timestamp < epochStart) {
+            return 0;
+        }
+        epochId = block.timestamp.sub(epochStart).div(EPOCH_DURATION).add(1);
     }
 
     // pure functions
