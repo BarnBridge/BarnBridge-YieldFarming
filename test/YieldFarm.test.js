@@ -33,9 +33,9 @@ describe('YieldFarm', function () {
             barnYCurve,
             staking.address,
         )
-        // await yieldFarm.deployed()
+        await yieldFarm.deployed()
     })
     it("should compute bonus", async function () {
-        // expect(await yieldFarm.computeBonus(10)).to.equal(25)
+        expect(await yieldFarm.computeBonus(10)).to.equal(25)
     })
 })
