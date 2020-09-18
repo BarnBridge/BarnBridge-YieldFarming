@@ -1,10 +1,10 @@
-const { expect } = require('chai');
-const { ethers } = require('@nomiclabs/buidler');
+const { expect } = require('chai')
+const { ethers } = require('@nomiclabs/buidler')
 
 describe('YieldFarm', function () {
     let yieldFarm
-    let staking, erc20Mock
-    let owner, user, userAddr, ownerAddr
+    let staking
+    let user, userAddr
     let barnBridge, usdc, susd, dai, barnYCurve
     const distributedAmount = ethers.BigNumber.from(800000).mul(ethers.BigNumber.from(10).pow(18))
     // let barnBridge = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
@@ -16,11 +16,9 @@ describe('YieldFarm', function () {
     const epochDuration = 604800
 
     const amount = ethers.BigNumber.from(100).mul(ethers.BigNumber.from(10).pow(18))
-    beforeEach (async function () {
+    beforeEach(async function () {
         snapshotId = await ethers.provider.send('evm_snapshot')
-        const [creator, ownerSigner, userSigner] = await ethers.getSigners()
-        owner = ownerSigner
-        ownerAddr = await owner.getAddress()
+        const [creator, userSigner] = await ethers.getSigners()
 
         user = userSigner
         userAddr = await user.getAddress()
@@ -58,17 +56,17 @@ describe('YieldFarm', function () {
     afterEach(async function () {
         await ethers.provider.send('evm_revert', [snapshotId])
     })
-    it("should be deployed", async function () {
+    it('should be deployed', async function () {
         expect(staking.address).to.not.equal(0)
         expect(yieldFarm.address).to.not.equal(0)
     })
-    it("should compute bonus", async function () {
+    it('should compute bonus', async function () {
         expect(await yieldFarm.computeBonus(10)).to.equal(25)
     })
     // describe("Harvest", async function () {
     //     console.log(this.usdc)
 
-    it ("Get epoch PoolSize and distribute tokens", async function () {
+    it('Get epoch PoolSize and distribute tokens', async function () {
         await depositUsdc(amount)
         await depositSUsd(amount)
         await depositDai(amount)
@@ -90,12 +88,14 @@ describe('YieldFarm', function () {
     function getCurrentUnix () {
         return Math.floor(Date.now() / 1000)
     }
+
     async function setNextBlockTimestamp (timestamp) {
         const block = await ethers.provider.send('eth_getBlockByNumber', ['latest', false])
         const currentTs = block.timestamp
         const diff = timestamp - currentTs
         await ethers.provider.send('evm_increaseTime', [diff])
     }
+
     async function moveAtEpoch (epoch) {
         await setNextBlockTimestamp(getCurrentUnix() + epochDuration * epoch)
         await ethers.provider.send('evm_mine')
@@ -124,5 +124,4 @@ describe('YieldFarm', function () {
         await barnYCurve.connect(user).approve(staking.address, x)
         return await staking.connect(user).deposit(barnYCurve.address, x)
     }
-
 })
