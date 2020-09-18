@@ -90,11 +90,10 @@ contract Staking {
     /*
      * Removes the deposit of the user and sends the amount of `tokenAddress` back to the `user`
      */
-    function withdraw(address tokenAddress) public {
-        require(balances[msg.sender][tokenAddress] > 0, "Staking: User has empty balance");
+    function withdraw(address tokenAddress, uint256 amount) public {
+        require(balances[msg.sender][tokenAddress] >= amount, "Staking: balance too small");
 
-        uint256 amount = balances[msg.sender][tokenAddress];
-        balances[msg.sender][tokenAddress] = 0;
+        balances[msg.sender][tokenAddress] = balances[msg.sender][tokenAddress].sub(amount);
 
         IERC20 token = IERC20(tokenAddress);
         token.transfer(msg.sender, amount);
@@ -109,7 +108,16 @@ contract Staking {
         }
 
         // decrease the balance this user contributed to the poolSize at the beginning of the current epoch == the epoch balance of previous epoch
-        poolSize[tokenAddress][currentEpoch].size = poolSize[tokenAddress][currentEpoch].size.sub(getEpochUserBalance(msg.sender, tokenAddress, currentEpoch));
+        uint256 epochStartBalance = getEpochUserBalance(msg.sender, tokenAddress, currentEpoch);
+        uint256 epochBalanceLeft;
+        if (amount >= epochStartBalance) {
+            epochBalanceLeft = 0;
+        } else {
+            epochBalanceLeft = epochStartBalance - amount;
+        }
+
+        uint256 poolSizeDiff = epochStartBalance.sub(epochBalanceLeft);
+        poolSize[tokenAddress][currentEpoch].size = poolSize[tokenAddress][currentEpoch].size.sub(poolSizeDiff);
 
         // update the pool size of the next epoch to its current balance
         Pool storage pNextEpoch = poolSize[tokenAddress][currentEpoch + 1];
@@ -124,20 +132,20 @@ contract Staking {
 
         // there was a deposit in an older epoch (more than 1 behind [eg: previous 0, now 5]) but no other action since then
         if (checkpoints[last].epochId < currentEpoch) {
-            checkpoints.push(Checkpoint(currentEpoch, 0));
+            checkpoints.push(Checkpoint(currentEpoch, epochBalanceLeft));
         }
         // there was a deposit in the `epochId - 1` epoch => we have a checkpoint for the current epoch
         else if (checkpoints[last].epochId == currentEpoch) {
-            checkpoints[last].balance = 0;
+            checkpoints[last].balance = epochBalanceLeft;
         }
         // there was a deposit in the current epoch
         else {
             // there was also a deposit in the previous epoch
             if (last >= 1 && checkpoints[last - 1].epochId == currentEpoch) {
-                checkpoints[last - 1].balance = 0;
+                checkpoints[last - 1].balance = epochBalanceLeft;
             }
 
-            checkpoints[last].balance = 0;
+            checkpoints[last].balance = balances[msg.sender][tokenAddress];
         }
     }
 
