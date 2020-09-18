@@ -14,6 +14,7 @@ contract Staking {
     // duration of each epoch
     uint256 public epochDuration;
 
+    // holds the current balance of the user for each token
     mapping(address => mapping(address => uint256)) private balances;
 
     struct Pool {
@@ -24,6 +25,7 @@ contract Staking {
     // for each token, we store the total pool size
     mapping(address => mapping(uint256 => Pool)) private poolSize;
 
+    // a checkpoint of the valid balance of a user for an epoch
     struct Checkpoint {
         uint256 epochId;
         uint256 balance;
@@ -32,9 +34,6 @@ contract Staking {
     // balanceCheckpoints[user][token][]
     mapping(address => mapping(address => Checkpoint[])) private balanceCheckpoints;
 
-    /*
-     *
-     */
     constructor (uint256 _epoch1Start, uint256 _epochDuration) public {
         epoch1Start = _epoch1Start;
         epochDuration = _epochDuration;
@@ -70,18 +69,28 @@ contract Staking {
         pNextEpoch.set = true;
 
         Checkpoint[] storage checkpoints = balanceCheckpoints[msg.sender][tokenAddress];
+
+        // if there's no checkpoint yet, it means the user didn't have any activity
+        // we want to store checkpoints both for the current epoch and next epoch because
+        // if a user does a withdraw, the current epoch can also be modified and
+        // we don't want to insert another checkpoint in the middle of the array as that could be expensive
         if (checkpoints.length == 0) {
             checkpoints.push(Checkpoint(currentEpoch, 0));
             checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
         } else {
             uint256 last = checkpoints.length - 1;
 
+            // the last action happened in an older epoch (e.g. a deposit in epoch 3, current epoch is >=5)
             if (checkpoints[last].epochId < currentEpoch) {
                 checkpoints.push(Checkpoint(currentEpoch, checkpoints[last].balance));
                 checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
-            } else if (checkpoints[last].epochId == currentEpoch) {
+            }
+            // the last action happened in the previous epoch
+            else if (checkpoints[last].epochId == currentEpoch) {
                 checkpoints.push(Checkpoint(nextEpoch, balances[msg.sender][tokenAddress]));
-            } else {
+            }
+            // the last action happened in the current epoch
+            else {
                 checkpoints[checkpoints.length - 1].balance = balances[msg.sender][tokenAddress];
             }
         }
@@ -149,6 +158,11 @@ contract Staking {
         }
     }
 
+    /*
+     * Returns the valid balance of a user that was taken into consideration in the total pool size for the epoch
+     * A deposit will only change the next epoch balance.
+     * A withdraw will decrease the current epoch (and subsequent) balance.
+     */
     function getEpochUserBalance(address user, address token, uint256 epochId) public view returns (uint256) {
         Checkpoint[] storage checkpoints = balanceCheckpoints[user][token];
 
@@ -178,6 +192,11 @@ contract Staking {
         return checkpoints[min].balance;
     }
 
+    /*
+     * manualEpochInit can be used by anyone to initialize an epoch based on the previous one
+     * This is only applicable if there was no action (deposit/withdraw) in the current epoch.
+     * Any deposit and withdraw will automatically initialize the current and next epoch.
+     */
     function manualEpochInit(address[] memory tokens, uint256 epochId) public {
         for (uint i = 0; i < tokens.length; i++) {
             Pool storage p = poolSize[tokens[i]][epochId];
@@ -186,8 +205,8 @@ contract Staking {
                 p.size = uint256(0);
                 p.set = true;
             } else {
-                require(!epochIsInitialized(tokens[0], epochId), "Staking: epoch already initialized");
-                require(epochIsInitialized(tokens[0], epochId - 1), "Staking: previous epoch not initialized");
+                require(!epochIsInitialized(tokens[i], epochId), "Staking: epoch already initialized");
+                require(epochIsInitialized(tokens[i], epochId - 1), "Staking: previous epoch not initialized");
 
                 p.size = poolSize[tokens[i]][epochId - 1].size;
                 p.set = true;
@@ -202,6 +221,9 @@ contract Staking {
         return balances[user][token];
     }
 
+    /*
+     * Returns the id of the current epoch derived from block.timestamp
+     */
     function getCurrentEpoch() public view returns (uint256) {
         if (block.timestamp < epoch1Start) {
             return 0;
@@ -210,12 +232,31 @@ contract Staking {
         return (block.timestamp - epoch1Start) / epochDuration + 1;
     }
 
-    function getEpochPoolSize(address token, uint256 epochId) public view returns (uint256) {
-        require(epochIsInitialized(token, epochId), "Staking: epoch not initialized");
+    /*
+     * Returns the total amount of `tokenAddress` that was locked from beginning to end of epoch identified by `epochId`
+     */
+    function getEpochPoolSize(address tokenAddress, uint256 epochId) public view returns (uint256) {
+        // Premises:
+        // 1. it's impossible to have gaps of uninitialized epochs
+        // - any deposit or withdraw initialize the current epoch which requires the previous one to be initialized
+        if (epochIsInitialized(tokenAddress, epochId)) {
+            return poolSize[tokenAddress][epochId].size;
+        }
 
-        return poolSize[token][epochId].size;
+        // epochId not initialized and epoch 0 not initialized => there was never any action on this pool
+        if (!epochIsInitialized(tokenAddress, 0)) {
+            return 0;
+        }
+
+        // epoch 0 is initialized => there was an action at some point but none that initialized the epochId
+        // which means the current pool size is equal to the current balance of token held by the staking contract
+        IERC20 token = IERC20(tokenAddress);
+        return token.balanceOf(address(this));
     }
 
+    /*
+     * Checks if an epoch is initialized, meaning we have a pool size set for it
+     */
     function epochIsInitialized(address token, uint256 epochId) internal view returns (bool) {
         return poolSize[token][epochId].set;
     }

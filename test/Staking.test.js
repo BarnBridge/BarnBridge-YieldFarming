@@ -482,6 +482,43 @@ describe('Staking', function () {
         })
     })
 
+    describe('getEpochPoolSize', function () {
+        beforeEach(async function () {
+            await erc20Mock.mint(userAddr, amount.mul(10))
+            await erc20Mock.connect(user).approve(staking.address, amount.mul(10))
+        })
+
+        it('Reverts if there\'s a gap', async function () {
+            await moveAtEpoch(2)
+
+            await expect(deposit(user, amount)).to.be.revertedWith('Staking: previous epoch not initialized')
+        })
+
+        it('Returns pool size when epoch is initialized', async function () {
+            await staking.manualEpochInit([erc20Mock.address], 0)
+            await moveAtEpoch(1)
+            await deposit(user, amount)
+
+            expect(await getEpochPoolSize(2)).to.be.equal(amount.toString())
+        })
+
+        it('Returns 0 when there was no action ever', async function () {
+            expect(await getEpochPoolSize(0)).to.be.equal('0')
+            expect(await getEpochPoolSize(2)).to.be.equal('0')
+            expect(await getEpochPoolSize(5)).to.be.equal('0')
+            expect(await getEpochPoolSize(79)).to.be.equal('0')
+            expect(await getEpochPoolSize(1542)).to.be.equal('0')
+        })
+
+        it('Returns correct balance where there was an action at some point', async function () {
+            await staking.manualEpochInit([erc20Mock.address], 0)
+            await moveAtEpoch(1)
+            await deposit(user, amount)
+
+            expect(await getEpochPoolSize(79)).to.be.equal(amount.toString())
+        })
+    })
+
     async function deposit (u, x) {
         return await staking.connect(u).deposit(erc20Mock.address, x)
     }
