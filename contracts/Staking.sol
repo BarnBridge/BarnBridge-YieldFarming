@@ -197,8 +197,8 @@ contract Staking {
                 p.size = uint256(0);
                 p.set = true;
             } else {
-                require(!epochIsInitialized(tokens[0], epochId), "Staking: epoch already initialized");
-                require(epochIsInitialized(tokens[0], epochId - 1), "Staking: previous epoch not initialized");
+                require(!epochIsInitialized(tokens[i], epochId), "Staking: epoch already initialized");
+                require(epochIsInitialized(tokens[i], epochId - 1), "Staking: previous epoch not initialized");
 
                 p.size = poolSize[tokens[i]][epochId - 1].size;
                 p.set = true;
