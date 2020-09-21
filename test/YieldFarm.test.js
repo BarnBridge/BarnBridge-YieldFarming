@@ -110,6 +110,24 @@ describe('YieldFarm', function () {
             expect(await yieldFarm.connect(user).userLastEpochIdHarvested()).to.equal(7)
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(7) // epoch 7 have been initialized
         })
+        it ("init an uninit epoch", async function () {
+            moveAtEpoch(5)
+            expect(await yieldFarm.lastInitializedEpoch()).to.equal(0) // no epoch initialized
+            await yieldFarm.initEpoch(1)
+            expect(await yieldFarm.lastInitializedEpoch()).to.equal(1) // no epoch initialized
+        })
+        it ("harvest maximum 24 epochs", async function () {
+            await depositUsdc(amount)
+            const totalAmount = amount
+            moveAtEpoch(30)
+            expect(await yieldFarm.getPoolSize(1)).to.equal(totalAmount)
+            await (await yieldFarm.connect(user).massHarvest()).wait()
+            expect(await yieldFarm.lastInitializedEpoch()).to.equal(24) // epoch 7 have been initialized
+        })
+        it ("gives epochid = 0 for previous epochs", async function () {
+            moveAtEpoch(-2)
+            expect(await yieldFarm.getCurrentEpoch()).to.equal(0) // epoch 7 have been initialized
+        })
     })
 
     function getCurrentUnix () {
