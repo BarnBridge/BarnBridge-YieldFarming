@@ -15,123 +15,138 @@ contract YieldFarm is ReentrancyGuardUpgradeSafe {
 
     // constants
     uint constant TOTAL_DISTRIBUTED_AMOUNT = 800000;
-
     uint NR_OF_EPOCHS = 24;
 
-    uint EPOCH_DURATION = 604800; // 7 days * 24 hours * 60 mins * 60 seconds
+     // state variables
 
-    // structs
-
-    struct Epoch {
-        bool init;
-        uint stakeEpoch;
-        uint poolSize;
-        mapping (address => bool) claimed;
-    }
-
-
-    // state variables
-    IERC20 private _barn;
+    // addreses
     address private _usdc;
     address private _susd;
     address private _dai;
-    address private _barnYCurve;
+    address private _uniLP;
+    address private _communityVault;
+    // contracts
+    IERC20 private _bond;
     IStaking private _staking;
-    mapping (uint => Epoch) epochs;
 
 
-    uint epochStart;
+    uint[] private epochs = new uint[](NR_OF_EPOCHS + 1);
+    uint public lastInitializedEpoch;
+    mapping (address => uint) lastEpochIdHarvested;
+    uint epochDuration; // init from staking contract
+    uint epochStart; // init from staking contract
 
 
     // modifiers
-
-
-
-
-    // construct
-
-    constructor(address barnBridgeAddress, address usdc, address susd, address dai, address barnYCurve, address stakeContract) public {
-        _barn = IERC20(barnBridgeAddress);
+    // constructor
+    constructor(address bondTokenAddress, address usdc, address susd, address dai, address uniLP, address stakeContract, address communityVault) public {
+        _bond = IERC20(bondTokenAddress);
         _usdc = usdc;
         _susd = susd;
         _dai = dai;
-        _barnYCurve = barnYCurve;
+        _uniLP = uniLP;
         _staking = IStaking(stakeContract);
+        _communityVault = communityVault;
         epochStart = _staking.epoch1Start();
+        epochDuration = _staking.epochDuration();
     }
-
 
     // public methods
-
-    function harvestEpochs (uint[] calldata userEpochs) public {
-        for(uint i=0; i<userEpochs.length; i++) {
-            _harvest(userEpochs[i]);
+    function massHarvest () external returns (uint){
+        uint totalDistributedValue;
+        uint epochId = _getEpochId().sub(1);
+        if (epochId > NR_OF_EPOCHS) {
+            epochId = NR_OF_EPOCHS;
         }
+        for(uint i = lastEpochIdHarvested[msg.sender] + 1; i <= epochId; i++) {
+            // i = epochId
+            totalDistributedValue += _harvest(i);
+        }
+        if (totalDistributedValue > 0) {
+            _bond.transferFrom(_communityVault, msg.sender, totalDistributedValue);
+        }
+        return totalDistributedValue;
+    }
+    function harvest (uint epochId) external returns (uint){
+        uint userReward = _harvest(epochId);
+        if (userReward > 0) {
+            _bond.transferFrom(_communityVault, msg.sender, userReward);
+        }
+        return userReward;
     }
 
-    function harvest (uint epochId) public {
-        _harvest(epochId);
+    function initEpoch (uint epochId) external {
+        _initEpoch(epochId);
     }
 
+    // views
     function getPoolSize (uint epochId) external view returns (uint) {
         return _getPoolSize(epochId);
     }
-
     function getCurrentEpoch () external view returns (uint) {
         return _getEpochId();
     }
-
     function getEpochStake (address userAddress, uint epochId) external view returns (uint) {
         return _getUserBalancePerEpoch (userAddress, epochId);
     }
 
-
+    function userLastEpochIdHarvested() external view returns (uint){
+        return lastEpochIdHarvested[msg.sender];
+    }
 
     // internal methods
 
-    function _harvest (uint epochId) internal  {
+    function _initEpoch (uint epochId) internal {
+        require (lastInitializedEpoch.add(1) == epochId, "Epoch can be init only in order");
+        lastInitializedEpoch = epochId;
+        uint epochPoolSizeValue = _getPoolSize(epochId);
+        epochs[epochId] = epochPoolSizeValue;
+    }
+
+    function _harvest (uint epochId) internal returns (uint) {
         // check that epoch is finished
         require (_getEpochId() > epochId, "This epoch is in the future");
+        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 24");
+        require (lastEpochIdHarvested[msg.sender].add(1) == epochId, "Epochs needs to be harvested in order");
 
-        Epoch storage epoch = epochs[epochId];
-        require (epoch.claimed[msg.sender] != true, "User already claimed");
-
-        if (!epoch.init) { // first to harvest
-            epoch.poolSize = _getPoolSize(epochId); // Staking will throw if it is not initialized and cannot initialize
-            epoch.init = true;
+        if (lastInitializedEpoch < epochId) {
+            _initEpoch(epochId);
         }
-        // Give user interest
-        uint userInterest = TOTAL_DISTRIBUTED_AMOUNT.mul(10**18).div(NR_OF_EPOCHS)
-                .mul(_getUserBalancePerEpoch(msg.sender, epochId))
-                .div(epoch.poolSize);
-        epoch.claimed[msg.sender] = true;
-        _barn.transfer(msg.sender, userInterest);
-
+        // Give user reward
+        uint userReward;
+        uint userBalancePerEpoch = _getUserBalancePerEpoch(msg.sender, epochId);
+        if (userBalancePerEpoch > 0 && epochs[epochId] > 0) {
+            userReward = TOTAL_DISTRIBUTED_AMOUNT.mul(10**18).div(NR_OF_EPOCHS)
+            .mul(userBalancePerEpoch)
+            .div(epochs[epochId]);
+        }
+        lastEpochIdHarvested[msg.sender] = epochId;
+        return userReward; // reward
     }
 
     function _getPoolSize (uint epochId) internal view returns (uint) {
         uint valueUsdc = _staking.getEpochPoolSize(_usdc, epochId);
         uint valueSusd = _staking.getEpochPoolSize(_susd, epochId);
         uint valueDai = _staking.getEpochPoolSize(_dai, epochId);
-        uint valueBarnYCurve = _staking.getEpochPoolSize(_barnYCurve, epochId);
-        valueBarnYCurve = computeBonus(valueBarnYCurve);
-        return valueUsdc.add(valueSusd).add(valueDai).add(valueBarnYCurve);
+        uint valueUniLP = _staking.getEpochPoolSize(_uniLP, epochId);
+        valueUniLP = computeBonus(valueUniLP);
+        return valueUsdc.add(valueSusd).add(valueDai).add(valueUniLP);
     }
 
     function _getUserBalancePerEpoch (address userAddress, uint epochId) internal view returns (uint){
         uint valueUsdc = _staking.getEpochUserBalance(userAddress, _usdc, epochId);
         uint valueSusd = _staking.getEpochUserBalance(userAddress, _susd, epochId);
         uint valueDai = _staking.getEpochUserBalance(userAddress, _dai, epochId);
-        uint valueBarnYCurve = _staking.getEpochUserBalance(userAddress, _barnYCurve, epochId);
-        valueBarnYCurve = computeBonus(valueBarnYCurve);
-        return valueUsdc.add(valueSusd).add(valueDai).add(valueBarnYCurve);
+        uint valueUniLP = _staking.getEpochUserBalance(userAddress, _uniLP, epochId);
+        valueUniLP = computeBonus(valueUniLP);
+        return valueUsdc.add(valueSusd).add(valueDai).add(valueUniLP);
     }
 
     function _getEpochId () internal view returns (uint epochId) {
         if (block.timestamp < epochStart) {
             return 0;
         }
-        epochId = block.timestamp.sub(epochStart).div(EPOCH_DURATION).add(1);
+        epochId = block.timestamp.sub(epochStart).div(epochDuration).add(1);
     }
 
     // pure functions

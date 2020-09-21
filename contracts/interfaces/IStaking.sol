@@ -9,4 +9,5 @@ interface IStaking {
     function getEpochUserBalance(address user, address token, uint epoch) external view returns(uint);
     function getEpochPoolSize(address token, uint epoch) external view returns (uint);
     function epoch1Start() external view returns (uint);
+    function epochDuration() external view returns (uint);
 }
