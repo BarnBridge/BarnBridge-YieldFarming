@@ -8,8 +8,8 @@ import "@nomiclabs/buidler/console.sol";
 contract Staking {
     using SafeMath for uint256;
 
-    uint256 constant MULTIPLIER_DECIMALS = 4;
-    uint16 constant BASE_MULTIPLIER = uint16(1 * 10 ** MULTIPLIER_DECIMALS);
+    uint256 constant MULTIPLIER_DECIMALS = 18;
+    uint128 constant BASE_MULTIPLIER = uint128(1 * 10 ** MULTIPLIER_DECIMALS);
 
     // timestamp for the epoch 1
     // everything before that is considered epoch 0 which won't have a reward but allows for the initial stake
@@ -32,7 +32,7 @@ contract Staking {
     // a checkpoint of the valid balance of a user for an epoch
     struct Checkpoint {
         uint128 epochId;
-        uint16 multiplier;
+        uint128 multiplier;
         uint256 startBalance;
         uint256 newDeposits;
     }
@@ -61,7 +61,7 @@ contract Staking {
 
         // epoch logic
         uint128 currentEpoch = getCurrentEpoch();
-        uint16 currentMultiplier = currentEpochMultiplier();
+        uint128 currentMultiplier = currentEpochMultiplier();
 
         if (!epochIsInitialized(tokenAddress, currentEpoch)) {
             address[] memory tokens = new address[](1);
@@ -92,7 +92,13 @@ contract Staking {
 
             // the last action happened in an older epoch (e.g. a deposit in epoch 3, current epoch is >=5)
             if (checkpoints[last].epochId < currentEpoch) {
-                checkpoints.push(Checkpoint(currentEpoch, currentMultiplier, getCheckpointEffectiveBalance(checkpoints[last]), amount));
+                uint128 multiplier = computeNewMultiplier(
+                    getCheckpointBalance(checkpoints[last]),
+                    BASE_MULTIPLIER,
+                    amount,
+                    currentMultiplier
+                );
+                checkpoints.push(Checkpoint(currentEpoch, multiplier, getCheckpointBalance(checkpoints[last]), amount));
                 checkpoints.push(Checkpoint(currentEpoch + 1, BASE_MULTIPLIER, balances[msg.sender][tokenAddress], 0));
             }
             // the last action happened in the previous epoch
@@ -153,9 +159,6 @@ contract Staking {
         pNextEpoch.size = token.balanceOf(address(this));
         pNextEpoch.set = true;
 
-        // in case of withdraw, we have 2 branches:
-        // 1. the user withdraws less than he added in the current epoch
-        // 2. the user withdraws more than he added in the current epoch (including 0)
         Checkpoint[] storage checkpoints = balanceCheckpoints[msg.sender][tokenAddress];
         uint256 last = checkpoints.length - 1;
 
@@ -181,8 +184,11 @@ contract Staking {
 
             uint256 balanceBefore = getCheckpointEffectiveBalance(currentEpochCheckpoint);
 
+            // in case of withdraw, we have 2 branches:
+            // 1. the user withdraws less than he added in the current epoch
+            // 2. the user withdraws more than he added in the current epoch (including 0)
             if (amount < currentEpochCheckpoint.newDeposits) {
-                uint16 avgDepositMultiplier = uint16(
+                uint128 avgDepositMultiplier = uint128(
                     balanceBefore.sub(currentEpochCheckpoint.startBalance).mul(10 ** MULTIPLIER_DECIMALS).div(currentEpochCheckpoint.newDeposits)
                 );
 
@@ -309,19 +315,19 @@ contract Staking {
     /*
      * Returns the percentage of time left in the current epoch
      */
-    function currentEpochMultiplier() public view returns (uint16) {
+    function currentEpochMultiplier() public view returns (uint128) {
         uint128 currentEpoch = getCurrentEpoch();
         uint256 currentEpochEnd = epoch1Start + currentEpoch * epochDuration;
         uint256 timeLeft = currentEpochEnd - block.timestamp;
-        uint16 multiplier = uint16(timeLeft * 10 ** MULTIPLIER_DECIMALS / epochDuration);
+        uint128 multiplier = uint128(timeLeft * 10 ** MULTIPLIER_DECIMALS / epochDuration);
 
         return multiplier;
     }
 
-    function computeNewMultiplier(uint256 prevBalance, uint16 prevMultiplier, uint256 amount, uint16 currentMultiplier) public pure returns (uint16) {
+    function computeNewMultiplier(uint256 prevBalance, uint128 prevMultiplier, uint256 amount, uint128 currentMultiplier) public pure returns (uint128) {
         uint256 prevAmount = prevBalance.mul(prevMultiplier).div(10 ** MULTIPLIER_DECIMALS);
         uint256 addAmount = amount.mul(currentMultiplier).div(10 ** MULTIPLIER_DECIMALS);
-        uint16 newMultiplier = uint16(prevAmount.add(addAmount).mul(10 ** MULTIPLIER_DECIMALS).div(prevBalance.add(amount)));
+        uint128 newMultiplier = uint128(prevAmount.add(addAmount).mul(10 ** MULTIPLIER_DECIMALS).div(prevBalance.add(amount)));
 
         return newMultiplier;
     }
