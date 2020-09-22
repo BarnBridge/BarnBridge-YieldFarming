@@ -10,6 +10,7 @@ contract YieldFarm {
 
     // lib
     using SafeMath for uint;
+    using SafeMath for uint128;
 
     // constants
     uint constant TOTAL_DISTRIBUTED_AMOUNT = 800000;
@@ -29,8 +30,8 @@ contract YieldFarm {
 
 
     uint[] private epochs = new uint[](NR_OF_EPOCHS + 1);
-    uint public lastInitializedEpoch;
-    mapping (address => uint) lastEpochIdHarvested;
+    uint128 public lastInitializedEpoch;
+    mapping (address => uint128) lastEpochIdHarvested;
     uint epochDuration; // init from staking contract
     uint epochStart; // init from staking contract
 
@@ -56,7 +57,7 @@ contract YieldFarm {
         if (epochId > NR_OF_EPOCHS) {
             epochId = NR_OF_EPOCHS;
         }
-        for(uint i = lastEpochIdHarvested[msg.sender] + 1; i <= epochId; i++) {
+        for(uint128 i = lastEpochIdHarvested[msg.sender] + 1; i <= epochId; i++) {
             // i = epochId
             totalDistributedValue += _harvest(i);
         }
@@ -65,7 +66,7 @@ contract YieldFarm {
         }
         return totalDistributedValue;
     }
-    function harvest (uint epochId) external returns (uint){
+    function harvest (uint128 epochId) external returns (uint){
         uint userReward = _harvest(epochId);
         if (userReward > 0) {
             _bond.transferFrom(_communityVault, msg.sender, userReward);
@@ -73,18 +74,18 @@ contract YieldFarm {
         return userReward;
     }
 
-    function initEpoch (uint epochId) external {
+    function initEpoch (uint128 epochId) external {
         _initEpoch(epochId);
     }
 
     // views
-    function getPoolSize (uint epochId) external view returns (uint) {
+    function getPoolSize (uint128 epochId) external view returns (uint) {
         return _getPoolSize(epochId);
     }
     function getCurrentEpoch () external view returns (uint) {
         return _getEpochId();
     }
-    function getEpochStake (address userAddress, uint epochId) external view returns (uint) {
+    function getEpochStake (address userAddress, uint128 epochId) external view returns (uint) {
         return _getUserBalancePerEpoch (userAddress, epochId);
     }
 
@@ -94,14 +95,14 @@ contract YieldFarm {
 
     // internal methods
 
-    function _initEpoch (uint epochId) internal {
+    function _initEpoch (uint128 epochId) internal {
         require (lastInitializedEpoch.add(1) == epochId, "Epoch can be init only in order");
         lastInitializedEpoch = epochId;
         uint epochPoolSizeValue = _getPoolSize(epochId);
         epochs[epochId] = epochPoolSizeValue;
     }
 
-    function _harvest (uint epochId) internal returns (uint) {
+    function _harvest (uint128 epochId) internal returns (uint) {
         // check that epoch is finished
         require (_getEpochId() > epochId, "This epoch is in the future");
         require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 24");
@@ -122,7 +123,7 @@ contract YieldFarm {
         return userReward; // reward
     }
 
-    function _getPoolSize (uint epochId) internal view returns (uint) {
+    function _getPoolSize (uint128 epochId) internal view returns (uint) {
         uint valueUsdc = _staking.getEpochPoolSize(_usdc, epochId);
         uint valueSusd = _staking.getEpochPoolSize(_susd, epochId);
         uint valueDai = _staking.getEpochPoolSize(_dai, epochId);
@@ -131,7 +132,7 @@ contract YieldFarm {
         return valueUsdc.add(valueSusd).add(valueDai).add(valueUniLP);
     }
 
-    function _getUserBalancePerEpoch (address userAddress, uint epochId) internal view returns (uint){
+    function _getUserBalancePerEpoch (address userAddress, uint128 epochId) internal view returns (uint){
         uint valueUsdc = _staking.getEpochUserBalance(userAddress, _usdc, epochId);
         uint valueSusd = _staking.getEpochUserBalance(userAddress, _susd, epochId);
         uint valueDai = _staking.getEpochUserBalance(userAddress, _dai, epochId);
@@ -140,11 +141,11 @@ contract YieldFarm {
         return valueUsdc.add(valueSusd).add(valueDai).add(valueUniLP);
     }
 
-    function _getEpochId () internal view returns (uint epochId) {
+    function _getEpochId () internal view returns (uint128 epochId) {
         if (block.timestamp < epochStart) {
             return 0;
         }
-        epochId = block.timestamp.sub(epochStart).div(epochDuration).add(1);
+        epochId = uint128(block.timestamp.sub(epochStart).div(epochDuration).add(1));
     }
 
     // pure functions

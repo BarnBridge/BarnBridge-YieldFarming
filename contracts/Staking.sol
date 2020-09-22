@@ -220,7 +220,7 @@ contract Staking is ReentrancyGuard {
      * A deposit will only change the next epoch balance.
      * A withdraw will decrease the current epoch (and subsequent) balance.
      */
-    function getEpochUserBalance(address user, address token, uint256 epochId) public view returns (uint256) {
+    function getEpochUserBalance(address user, address token, uint128 epochId) public view returns (uint256) {
         Checkpoint[] storage checkpoints = balanceCheckpoints[user][token];
 
         // if there are no checkpoints, it means the user never deposited any tokens, so the balance is 0
