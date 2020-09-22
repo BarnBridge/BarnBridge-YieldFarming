@@ -2,13 +2,11 @@
 pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IStaking.sol";
 
 
-contract YieldFarm is ReentrancyGuardUpgradeSafe {
+contract YieldFarm {
 
     // lib
     using SafeMath for uint;
