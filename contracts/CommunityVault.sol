@@ -1,0 +1,20 @@
+pragma solidity ^0.6.0;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract CommunityVault is Ownable {
+
+    IERC20 private _bond;
+
+    constructor (address bond) public {
+        _bond = IERC20(bond);
+    }
+
+
+    function setAllowance (address spender, uint amount) public onlyOwner {
+        _bond.approve(spender, amount);
+    }
+
+
+}
