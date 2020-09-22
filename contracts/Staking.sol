@@ -3,13 +3,11 @@ pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@nomiclabs/buidler/console.sol";
 
 contract Staking {
     using SafeMath for uint256;
 
-    uint256 constant MULTIPLIER_DECIMALS = 18;
-    uint128 constant BASE_MULTIPLIER = uint128(1 * 10 ** MULTIPLIER_DECIMALS);
+    uint128 constant BASE_MULTIPLIER = uint128(1 * 10 ** 18);
 
     // timestamp for the epoch 1
     // everything before that is considered epoch 0 which won't have a reward but allows for the initial stake
@@ -189,7 +187,7 @@ contract Staking {
             // 2. the user withdraws more than he added in the current epoch (including 0)
             if (amount < currentEpochCheckpoint.newDeposits) {
                 uint128 avgDepositMultiplier = uint128(
-                    balanceBefore.sub(currentEpochCheckpoint.startBalance).mul(10 ** MULTIPLIER_DECIMALS).div(currentEpochCheckpoint.newDeposits)
+                    balanceBefore.sub(currentEpochCheckpoint.startBalance).mul(BASE_MULTIPLIER).div(currentEpochCheckpoint.newDeposits)
                 );
 
                 currentEpochCheckpoint.newDeposits = currentEpochCheckpoint.newDeposits.sub(amount);
@@ -319,15 +317,15 @@ contract Staking {
         uint128 currentEpoch = getCurrentEpoch();
         uint256 currentEpochEnd = epoch1Start + currentEpoch * epochDuration;
         uint256 timeLeft = currentEpochEnd - block.timestamp;
-        uint128 multiplier = uint128(timeLeft * 10 ** MULTIPLIER_DECIMALS / epochDuration);
+        uint128 multiplier = uint128(timeLeft * BASE_MULTIPLIER / epochDuration);
 
         return multiplier;
     }
 
     function computeNewMultiplier(uint256 prevBalance, uint128 prevMultiplier, uint256 amount, uint128 currentMultiplier) public pure returns (uint128) {
-        uint256 prevAmount = prevBalance.mul(prevMultiplier).div(10 ** MULTIPLIER_DECIMALS);
-        uint256 addAmount = amount.mul(currentMultiplier).div(10 ** MULTIPLIER_DECIMALS);
-        uint128 newMultiplier = uint128(prevAmount.add(addAmount).mul(10 ** MULTIPLIER_DECIMALS).div(prevBalance.add(amount)));
+        uint256 prevAmount = prevBalance.mul(prevMultiplier).div(BASE_MULTIPLIER);
+        uint256 addAmount = amount.mul(currentMultiplier).div(BASE_MULTIPLIER);
+        uint128 newMultiplier = uint128(prevAmount.add(addAmount).mul(BASE_MULTIPLIER).div(prevBalance.add(amount)));
 
         return newMultiplier;
     }
@@ -344,6 +342,6 @@ contract Staking {
     }
 
     function getCheckpointEffectiveBalance(Checkpoint memory c) internal pure returns (uint256) {
-        return getCheckpointBalance(c).mul(c.multiplier).div(10 ** MULTIPLIER_DECIMALS);
+        return getCheckpointBalance(c).mul(c.multiplier).div(BASE_MULTIPLIER);
     }
 }

@@ -125,15 +125,15 @@ describe('Staking', function () {
 
                 const NUM_CHECKS = 5
                 for (let i = 0; i < NUM_CHECKS; i++) {
-                    const ts = Math.floor(Math.random() * epochDuration)
                     const snapshotId = await ethers.provider.send('evm_snapshot')
 
+                    const ts = Math.floor(Math.random() * epochDuration)
+
                     await setNextBlockTimestamp(epoch1Start + ts)
-
-                    const multiplier = multiplierAtTs(1, epoch1Start + ts)
-                    const expectedBalance = computeEffectiveBalance(amount, multiplier)
-
                     await deposit(user, amount)
+
+                    const multiplier = multiplierAtTs(1, await getBlockTimestamp())
+                    const expectedBalance = computeEffectiveBalance(amount, multiplier)
 
                     expect(await getEpochUserBalance(userAddr, 1)).to.equal(expectedBalance)
                     expect(await getEpochUserBalance(userAddr, 2)).to.equal(amount)
@@ -148,12 +148,11 @@ describe('Staking', function () {
                 await staking.manualEpochInit([erc20Mock.address], 0)
                 await moveAtEpoch(1)
 
-                const ts = getEpochStart(1) + Math.floor(epochDuration / 2)
-                await setNextBlockTimestamp(ts)
+                await setNextBlockTimestamp(getEpochStart(1) + Math.floor(epochDuration / 2))
 
                 await deposit(user, amount)
 
-                const expectedMultiplier = multiplierAtTs(1, ts)
+                const expectedMultiplier = multiplierAtTs(1, await getBlockTimestamp())
                 const expectedBalance = computeEffectiveBalance(amount, expectedMultiplier)
 
                 expect(await getEpochUserBalance(userAddr, 1)).to.equal(expectedBalance)
@@ -167,21 +166,19 @@ describe('Staking', function () {
                 await staking.manualEpochInit([erc20Mock.address], 0)
                 await moveAtEpoch(1)
 
-                const ts = getEpochStart(1) + Math.floor(epochDuration / 2)
-                await setNextBlockTimestamp(ts)
+                await setNextBlockTimestamp(getEpochStart(1) + Math.floor(epochDuration / 2))
                 await deposit(user, amount)
 
                 await staking.manualEpochInit([erc20Mock.address], 3)
 
                 await moveAtEpoch(4)
-                const ts1 = getEpochStart(4) + Math.floor(epochDuration / 2)
-                await setNextBlockTimestamp(ts1)
+                await setNextBlockTimestamp(getEpochStart(4) + Math.floor(epochDuration / 2))
 
                 expect(await getEpochUserBalance(userAddr, 4)).to.equal(amount)
 
                 await deposit(user, amount)
 
-                const expectedMultiplier = multiplierAtTs(4, ts1)
+                const expectedMultiplier = multiplierAtTs(4, await getBlockTimestamp())
                 const totalMultiplier = calculateMultiplier(amount, BASE_MULTIPLIER, amount, expectedMultiplier)
                 const expectedBalance = computeEffectiveBalance(amount.mul(2), totalMultiplier)
 
@@ -195,19 +192,17 @@ describe('Staking', function () {
             it('deposit epoch 1, deposit epoch 2', async function () {
                 await staking.manualEpochInit([erc20Mock.address], 0)
                 await moveAtEpoch(1)
-                const ts = getEpochStart(1) + Math.floor(epochDuration / 2)
-                await setNextBlockTimestamp(ts)
+                await setNextBlockTimestamp(getEpochStart(1) + Math.floor(epochDuration / 2))
                 await deposit(user, amount)
 
                 await moveAtEpoch(2)
-                const ts1 = getEpochStart(2) + Math.floor(epochDuration / 2)
-                await setNextBlockTimestamp(ts1)
+                await setNextBlockTimestamp(getEpochStart(2) + Math.floor(epochDuration / 2))
 
                 expect(await getEpochUserBalance(userAddr, 2)).to.equal(amount)
 
                 await deposit(user, amount)
 
-                const expectedMultiplier = multiplierAtTs(2, ts1)
+                const expectedMultiplier = multiplierAtTs(2, await getBlockTimestamp())
                 const totalMultiplier = calculateMultiplier(amount, BASE_MULTIPLIER, amount, expectedMultiplier)
                 const expectedBalance = computeEffectiveBalance(amount.mul(2), totalMultiplier)
 
@@ -221,8 +216,7 @@ describe('Staking', function () {
             it('deposit epoch 1, deposit epoch 5, deposit epoch 5', async function () {
                 await staking.manualEpochInit([erc20Mock.address], 0)
                 await moveAtEpoch(1)
-                const ts = getEpochStart(1) + Math.floor(epochDuration / 2)
-                await setNextBlockTimestamp(ts)
+                await setNextBlockTimestamp(getEpochStart(1) + Math.floor(epochDuration / 2))
                 await deposit(user, amount)
 
                 await staking.manualEpochInit([erc20Mock.address], 3)
@@ -230,20 +224,18 @@ describe('Staking', function () {
 
                 await moveAtEpoch(5)
 
-                const ts1 = getEpochStart(5) + Math.floor(epochDuration / 2)
-                await setNextBlockTimestamp(ts1)
+                await setNextBlockTimestamp(getEpochStart(5) + Math.floor(epochDuration / 2))
                 await deposit(user, amount)
 
-                const ts2 = getEpochStart(5) + Math.floor(epochDuration * 3 / 4)
-                await setNextBlockTimestamp(ts2)
+                const expectedMultiplier = multiplierAtTs(5, await getBlockTimestamp())
+                const totalMultiplier = calculateMultiplier(amount, BASE_MULTIPLIER, amount, expectedMultiplier)
+
+                await setNextBlockTimestamp(getEpochStart(5) + Math.floor(epochDuration * 3 / 4))
                 await deposit(user, amount)
 
-                const expectedMultiplier = amount
-                    .add(amount.div(2))
-                    .add(amount.div(4))
-                    .mul(BASE_MULTIPLIER)
-                    .div(amount.mul(3))
-                const expectedBalance = amount.mul(3).mul(expectedMultiplier).div(BASE_MULTIPLIER)
+                const expectedMultiplier2 = multiplierAtTs(5, await getBlockTimestamp())
+                const totalMultiplier2 = calculateMultiplier(amount.mul(2), totalMultiplier, amount, expectedMultiplier2)
+                const expectedBalance = computeEffectiveBalance(amount.mul(3), totalMultiplier2)
 
                 expect(await getEpochUserBalance(userAddr, 5)).to.equal(expectedBalance)
                 expect(await getEpochUserBalance(userAddr, 6)).to.equal(amount.mul(3))
@@ -707,6 +699,12 @@ describe('Staking', function () {
         })
     })
 
+    async function getBlockTimestamp () {
+        const block = await ethers.provider.send('eth_getBlockByNumber', ['latest', false])
+
+        return parseInt(block.timestamp)
+    }
+
     function computeEffectiveBalance (balance, multiplier) {
         return balance.mul(multiplier).div(BASE_MULTIPLIER)
     }
@@ -772,7 +770,7 @@ describe('Staking', function () {
 
     async function setNextBlockTimestamp (timestamp) {
         const block = await ethers.provider.send('eth_getBlockByNumber', ['latest', false])
-        const currentTs = block.timestamp
+        const currentTs = parseInt(block.timestamp)
         const diff = timestamp - currentTs
         await ethers.provider.send('evm_increaseTime', [diff])
     }
