@@ -3,11 +3,12 @@ pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Staking {
+contract Staking is ReentrancyGuard {
     using SafeMath for uint256;
 
-    uint128 constant BASE_MULTIPLIER = uint128(1 * 10 ** 18);
+    uint128 constant private BASE_MULTIPLIER = uint128(1 * 10 ** 18);
 
     // timestamp for the epoch 1
     // everything before that is considered epoch 0 which won't have a reward but allows for the initial stake
@@ -46,7 +47,7 @@ contract Staking {
     /*
      * Stores `amount` of `tokenAddress` tokens for the `user` into the vault
      */
-    function deposit(address tokenAddress, uint256 amount) public {
+    function deposit(address tokenAddress, uint256 amount) public nonReentrant {
         require(amount > 0, "Staking: Amount must be > 0");
 
         IERC20 token = IERC20(tokenAddress);
@@ -135,7 +136,7 @@ contract Staking {
     /*
      * Removes the deposit of the user and sends the amount of `tokenAddress` back to the `user`
      */
-    function withdraw(address tokenAddress, uint256 amount) public {
+    function withdraw(address tokenAddress, uint256 amount) public nonReentrant {
         require(balances[msg.sender][tokenAddress] >= amount, "Staking: balance too small");
 
         balances[msg.sender][tokenAddress] = balances[msg.sender][tokenAddress].sub(amount);

@@ -234,7 +234,12 @@ describe('Staking', function () {
                 await deposit(user, amount)
 
                 const expectedMultiplier2 = multiplierAtTs(5, await getBlockTimestamp())
-                const totalMultiplier2 = calculateMultiplier(amount.mul(2), totalMultiplier, amount, expectedMultiplier2)
+                const totalMultiplier2 = calculateMultiplier(
+                    amount.mul(2),
+                    totalMultiplier,
+                    amount,
+                    expectedMultiplier2,
+                )
                 const expectedBalance = computeEffectiveBalance(amount.mul(3), totalMultiplier2)
 
                 expect(await getEpochUserBalance(userAddr, 5)).to.equal(expectedBalance)
