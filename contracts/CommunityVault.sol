@@ -11,10 +11,11 @@ contract CommunityVault is Ownable {
         _bond = IERC20(bond);
     }
 
+    event SetAllowance(address indexed caller, address indexed spender, uint256 amount);
 
-    function setAllowance (address spender, uint amount) public onlyOwner {
+    function setAllowance(address spender, uint amount) public onlyOwner {
         _bond.approve(spender, amount);
+
+        emit SetAllowance(msg.sender, spender, amount);
     }
-
-
 }

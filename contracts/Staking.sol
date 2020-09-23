@@ -41,6 +41,11 @@ contract Staking is ReentrancyGuard {
 
     mapping(address => uint128) private lastWithdrawEpochId;
 
+    event Deposit(address indexed user, address indexed tokenAddress, uint256 amount);
+    event Withdraw(address indexed user, address indexed tokenAddress, uint256 amount);
+    event ManualEpochInit(address indexed caller, uint128 indexed epochId, address[] tokens);
+    event EmergencyWithdraw(address indexed user, address indexed tokenAddress, uint256 amount);
+
     constructor (uint256 _epoch1Start, uint256 _epochDuration) public {
         epoch1Start = _epoch1Start;
         epochDuration = _epochDuration;
@@ -133,6 +138,8 @@ contract Staking is ReentrancyGuard {
         uint256 balanceAfter = getEpochUserBalance(msg.sender, tokenAddress, currentEpoch);
 
         poolSize[tokenAddress][currentEpoch].size = poolSize[tokenAddress][currentEpoch].size.add(balanceAfter.sub(balanceBefore));
+
+        emit Deposit(msg.sender, tokenAddress, amount);
     }
 
     /*
@@ -217,6 +224,8 @@ contract Staking is ReentrancyGuard {
 
             checkpoints[last].startBalance = balances[msg.sender][tokenAddress];
         }
+
+        emit Withdraw(msg.sender, tokenAddress, amount);
     }
 
     /*
@@ -273,6 +282,8 @@ contract Staking is ReentrancyGuard {
                 p.set = true;
             }
         }
+
+        emit ManualEpochInit(msg.sender, epochId, tokens);
     }
 
     function emergencyWithdraw(address tokenAddress) public {
@@ -285,6 +296,8 @@ contract Staking is ReentrancyGuard {
 
         IERC20 token = IERC20(tokenAddress);
         token.transfer(msg.sender, totalUserBalance);
+
+        emit EmergencyWithdraw(msg.sender, tokenAddress, totalUserBalance);
     }
 
     /*
