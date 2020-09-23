@@ -220,6 +220,42 @@ contract Staking is ReentrancyGuard {
     }
 
     /*
+     * manualEpochInit can be used by anyone to initialize an epoch based on the previous one
+     * This is only applicable if there was no action (deposit/withdraw) in the current epoch.
+     * Any deposit and withdraw will automatically initialize the current and next epoch.
+     */
+    function manualEpochInit(address[] memory tokens, uint128 epochId) public {
+        require(epochId <= getCurrentEpoch(), "can't init a future epoch");
+
+        for (uint i = 0; i < tokens.length; i++) {
+            Pool storage p = poolSize[tokens[i]][epochId];
+
+            if (epochId == 0) {
+                p.size = uint256(0);
+                p.set = true;
+            } else {
+                require(!epochIsInitialized(tokens[i], epochId), "Staking: epoch already initialized");
+                require(epochIsInitialized(tokens[i], epochId - 1), "Staking: previous epoch not initialized");
+
+                p.size = poolSize[tokens[i]][epochId - 1].size;
+                p.set = true;
+            }
+        }
+    }
+
+    function emergencyWithdraw(address tokenAddress) public {
+        require((getCurrentEpoch() - lastWithdrawEpochId[tokenAddress]) >= 10, "At least 10 epochs must pass without success");
+
+        uint256 totalUserBalance = balances[msg.sender][tokenAddress];
+        require(totalUserBalance > 0, "Amount must be > 0");
+
+        balances[msg.sender][tokenAddress] = 0;
+
+        IERC20 token = IERC20(tokenAddress);
+        token.transfer(msg.sender, totalUserBalance);
+    }
+
+    /*
      * Returns the valid balance of a user that was taken into consideration in the total pool size for the epoch
      * A deposit will only change the next epoch balance.
      * A withdraw will decrease the current epoch (and subsequent) balance.
@@ -251,40 +287,6 @@ contract Staking is ReentrancyGuard {
         }
 
         return getCheckpointEffectiveBalance(checkpoints[min]);
-    }
-
-    /*
-     * manualEpochInit can be used by anyone to initialize an epoch based on the previous one
-     * This is only applicable if there was no action (deposit/withdraw) in the current epoch.
-     * Any deposit and withdraw will automatically initialize the current and next epoch.
-     */
-    function manualEpochInit(address[] memory tokens, uint128 epochId) public {
-        for (uint i = 0; i < tokens.length; i++) {
-            Pool storage p = poolSize[tokens[i]][epochId];
-
-            if (epochId == 0) {
-                p.size = uint256(0);
-                p.set = true;
-            } else {
-                require(!epochIsInitialized(tokens[i], epochId), "Staking: epoch already initialized");
-                require(epochIsInitialized(tokens[i], epochId - 1), "Staking: previous epoch not initialized");
-
-                p.size = poolSize[tokens[i]][epochId - 1].size;
-                p.set = true;
-            }
-        }
-    }
-
-    function emergencyWithdraw(address tokenAddress) public {
-        require((getCurrentEpoch() - lastWithdrawEpochId[tokenAddress]) >= 10, "At least 10 epochs must pass without success");
-
-        uint256 totalUserBalance = balances[msg.sender][tokenAddress];
-        require(totalUserBalance > 0, "Amount must be > 0");
-
-        balances[msg.sender][tokenAddress] = 0;
-
-        IERC20 token = IERC20(tokenAddress);
-        token.transfer(msg.sender, totalUserBalance);
     }
 
     /*
