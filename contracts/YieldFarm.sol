@@ -138,8 +138,8 @@ contract YieldFarm {
         // reward
     }
 
-    function _getPoolSize(uint128 epochId) internal view returns (uint) {
-        uint valueUsdc = _staking.getEpochPoolSize(_usdc, epochId);
+    function _getPoolSize (uint128 epochId) internal view returns (uint) {
+        uint valueUsdc = _staking.getEpochPoolSize(_usdc, epochId).mul(10**12); // because usdc has 6 decimals
         uint valueSusd = _staking.getEpochPoolSize(_susd, epochId);
         uint valueDai = _staking.getEpochPoolSize(_dai, epochId);
         uint valueUniLP = _staking.getEpochPoolSize(_uniLP, epochId);
@@ -147,8 +147,9 @@ contract YieldFarm {
         return valueUsdc.add(valueSusd).add(valueDai).add(valueUniLP);
     }
 
-    function _getUserBalancePerEpoch(address userAddress, uint128 epochId) internal view returns (uint){
-        uint valueUsdc = _staking.getEpochUserBalance(userAddress, _usdc, epochId);
+
+    function _getUserBalancePerEpoch (address userAddress, uint128 epochId) internal view returns (uint){
+        uint valueUsdc = _staking.getEpochUserBalance(userAddress, _usdc, epochId).mul(10**12); // because usdc has 6 decimals
         uint valueSusd = _staking.getEpochUserBalance(userAddress, _susd, epochId);
         uint valueDai = _staking.getEpochUserBalance(userAddress, _dai, epochId);
         uint valueUniLP = _staking.getEpochUserBalance(userAddress, _uniLP, epochId);
