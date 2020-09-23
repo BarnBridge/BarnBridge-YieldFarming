@@ -16,11 +16,12 @@ describe('YieldFarm', function () {
     const epochDuration = 1000
 
     const amount = ethers.BigNumber.from(100).mul(ethers.BigNumber.from(10).pow(18))
+    const amountUSDC = amount.div(ethers.BigNumber.from(10).pow(12))
     beforeEach (async function () {
         snapshotId = await ethers.provider.send('evm_snapshot')
         const [creator, ownerSigner, userSigner] = await ethers.getSigners()
-        communityVault = owner = ownerSigner
-        communityVaultAddr = ownerAddr = await owner.getAddress()
+        owner = ownerSigner
+        ownerAddr = await owner.getAddress()
 
         user = userSigner
         userAddr = await user.getAddress()
@@ -30,19 +31,17 @@ describe('YieldFarm', function () {
         staking = await Staking.deploy(Math.floor(Date.now() / 1000) + 1000, epochDuration)
         await staking.deployed()
         // console.log(staking.address)
+        const ERC20Mock6Decimals = await ethers.getContractFactory('ERC20Mock6Decimals')
         const ERC20Mock = await ethers.getContractFactory('ERC20Mock')
+        const CommunityVault = await ethers.getContractFactory('CommunityVault')
+
         bondToken = await ERC20Mock.deploy()
-        // console.log(erc20Mock.address)
-        usdc = await ERC20Mock.deploy()
-        // console.log(usdc.address)
+        usdc = await ERC20Mock6Decimals.deploy()
         susd = await ERC20Mock.deploy()
-        // console.log(susd.address)
-        //
         dai = await ERC20Mock.deploy()
-        // console.log(dai.address)
-        //
         uniLP = await ERC20Mock.deploy()
-        // console.log(barnYCurve.address)
+        communityVault = await CommunityVault.deploy(bondToken.address)
+        communityVaultAddr = communityVault.address
         const YieldFarm = await ethers.getContractFactory('YieldFarm')
         yieldFarm = await YieldFarm.deploy(
             bondToken.address,
@@ -54,7 +53,7 @@ describe('YieldFarm', function () {
             communityVaultAddr,
         )
         await bondToken.mint(communityVaultAddr, distributedAmount)
-        await bondToken.connect(communityVault).approve(yieldFarm.address, distributedAmount)
+        await communityVault.connect(creator).setAllowance(yieldFarm.address, distributedAmount)
     })
     afterEach(async function () {
         await ethers.provider.send('evm_revert', [snapshotId])
@@ -66,7 +65,7 @@ describe('YieldFarm', function () {
             expect(bondToken.address).to.not.equal(0)
         })
         it ("Get epoch PoolSize and distribute tokens", async function () {
-            await depositUsdc(amount)
+            await depositUsdc(amountUSDC)
             await depositSUsd(amount)
             await depositDai(amount)
             await depositUniLP(amount)
@@ -90,7 +89,7 @@ describe('YieldFarm', function () {
 
     describe ("Contract Tests", function () {
         it ("User harvest and mass Harvest", async function () {
-            await depositUsdc(amount)
+            await depositUsdc(amountUSDC)
             await depositUniLP(amount, owner)
             const totalAmount = amount.mul(35).div(10)
             moveAtEpoch(8)
@@ -117,7 +116,7 @@ describe('YieldFarm', function () {
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(1) // no epoch initialized
         })
         it ("harvest maximum 24 epochs", async function () {
-            await depositUsdc(amount)
+            await depositUsdc(amountUSDC)
             const totalAmount = amount
             moveAtEpoch(30)
             expect(await yieldFarm.getPoolSize(1)).to.equal(totalAmount)
