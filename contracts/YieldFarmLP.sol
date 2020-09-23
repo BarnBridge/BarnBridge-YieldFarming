@@ -4,24 +4,22 @@ pragma solidity ^0.6.0;
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IStaking.sol";
+import "@nomiclabs/buidler/console.sol";
 
-
-contract YieldFarm {
+contract YieldFarmLP {
 
     // lib
     using SafeMath for uint;
     using SafeMath for uint128;
 
     // constants
-    uint constant TOTAL_DISTRIBUTED_AMOUNT = 800000;
-    uint NR_OF_EPOCHS = 24;
+    uint constant TOTAL_DISTRIBUTED_AMOUNT = 2000000;
+    uint NR_OF_EPOCHS = 100;
 
      // state variables
 
     // addreses
-    address private _usdc;
-    address private _susd;
-    address private _dai;
+    address private _uniLP;
     address private _communityVault;
     // contracts
     IERC20 private _bond;
@@ -37,15 +35,13 @@ contract YieldFarm {
 
     // modifiers
     // constructor
-    constructor(address bondTokenAddress, address usdc, address susd, address dai, address stakeContract, address communityVault) public {
+    constructor(address bondTokenAddress, address uniLP, address stakeContract, address communityVault) public {
         _bond = IERC20(bondTokenAddress);
-        _usdc = usdc;
-        _susd = susd;
-        _dai = dai;
+        _uniLP = uniLP;
         _staking = IStaking(stakeContract);
         _communityVault = communityVault;
-        epochStart = _staking.epoch1Start();
         epochDuration = _staking.epochDuration();
+        epochStart = _staking.epoch1Start() + epochDuration;
     }
 
     // public methods
@@ -103,7 +99,7 @@ contract YieldFarm {
     function _harvest (uint128 epochId) internal returns (uint) {
         // check that epoch is finished
         require (_getEpochId() > epochId, "This epoch is in the future");
-        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 24");
+        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 100");
         require (lastEpochIdHarvested[msg.sender].add(1) == epochId, "Epochs needs to be harvested in order");
 
         if (lastInitializedEpoch < epochId) {
@@ -122,17 +118,11 @@ contract YieldFarm {
     }
 
     function _getPoolSize (uint128 epochId) internal view returns (uint) {
-        uint valueUsdc = _staking.getEpochPoolSize(_usdc, epochId).mul(10**12); // because usdc has 6 decimals
-        uint valueSusd = _staking.getEpochPoolSize(_susd, epochId);
-        uint valueDai = _staking.getEpochPoolSize(_dai, epochId);
-        return valueUsdc.add(valueSusd).add(valueDai);
+        return _staking.getEpochPoolSize(_uniLP, _stakingEpochId(epochId));
     }
 
     function _getUserBalancePerEpoch (address userAddress, uint128 epochId) internal view returns (uint){
-        uint valueUsdc = _staking.getEpochUserBalance(userAddress, _usdc, epochId).mul(10**12); // because usdc has 6 decimals
-        uint valueSusd = _staking.getEpochUserBalance(userAddress, _susd, epochId);
-        uint valueDai = _staking.getEpochUserBalance(userAddress, _dai, epochId);
-        return valueUsdc.add(valueSusd).add(valueDai);
+        return _staking.getEpochUserBalance(userAddress, _uniLP, _stakingEpochId(epochId));
     }
 
     function _getEpochId () internal view returns (uint128 epochId) {
@@ -140,5 +130,9 @@ contract YieldFarm {
             return 0;
         }
         epochId = uint128(block.timestamp.sub(epochStart).div(epochDuration).add(1));
+    }
+
+    function _stakingEpochId (uint128 epochId) pure internal returns (uint128) {
+        return epochId + 1;
     }
 }
