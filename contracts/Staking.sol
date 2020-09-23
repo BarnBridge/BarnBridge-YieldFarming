@@ -39,6 +39,8 @@ contract Staking is ReentrancyGuard {
     // balanceCheckpoints[user][token][]
     mapping(address => mapping(address => Checkpoint[])) private balanceCheckpoints;
 
+    mapping(address => uint256) private lastWithdrawEpochId;
+
     constructor (uint256 _epoch1Start, uint256 _epochDuration) public {
         epoch1Start = _epoch1Start;
         epochDuration = _epochDuration;
@@ -146,6 +148,8 @@ contract Staking is ReentrancyGuard {
 
         // epoch logic
         uint128 currentEpoch = getCurrentEpoch();
+
+        lastWithdrawEpochId[tokenAddress] = currentEpoch;
 
         if (!epochIsInitialized(tokenAddress, currentEpoch)) {
             address[] memory tokens = new address[](1);
@@ -269,6 +273,18 @@ contract Staking is ReentrancyGuard {
                 p.set = true;
             }
         }
+    }
+
+    function emergencyWithdraw(address tokenAddress) public {
+        require((getCurrentEpoch() - lastWithdrawEpochId[tokenAddress]) >= 10, "At least 10 epochs must pass without success");
+
+        uint256 totalUserBalance = balances[msg.sender][tokenAddress];
+        require(totalUserBalance > 0, "Amount must be > 0");
+
+        balances[msg.sender][tokenAddress] = 0;
+
+        IERC20 token = IERC20(tokenAddress);
+        token.transfer(msg.sender, totalUserBalance);
     }
 
     /*
