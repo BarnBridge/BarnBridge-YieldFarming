@@ -39,7 +39,7 @@ contract Staking is ReentrancyGuard {
     // balanceCheckpoints[user][token][]
     mapping(address => mapping(address => Checkpoint[])) private balanceCheckpoints;
 
-    mapping(address => uint256) private lastWithdrawEpochId;
+    mapping(address => uint128) private lastWithdrawEpochId;
 
     constructor (uint256 _epoch1Start, uint256 _epochDuration) public {
         epoch1Start = _epoch1Start;
