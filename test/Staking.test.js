@@ -704,6 +704,71 @@ describe('Staking', function () {
         })
     })
 
+    describe('emergencyWithdraw', function () {
+        beforeEach(async function () {
+            await erc20Mock.mint(userAddr, amount.mul(10))
+            await erc20Mock.mint(ownerAddr, amount.mul(10))
+            await erc20Mock.connect(user).approve(staking.address, amount.mul(10))
+            await erc20Mock.connect(owner).approve(staking.address, amount.mul(10))
+        })
+
+        it('Does not work if less than 10 epochs passed', async function () {
+            await expect(
+                staking.connect(user).emergencyWithdraw(erc20Mock.address),
+            ).to.be.revertedWith('At least 10 epochs must pass without success')
+        })
+
+        it('Reverts if user has no balance', async function () {
+            await moveAtEpoch(11)
+
+            await expect(
+                staking.connect(user).emergencyWithdraw(erc20Mock.address),
+            ).to.be.revertedWith('Amount must be > 0')
+        })
+
+        it('Reverts if user has balance but less than 10 epochs passed', async function () {
+            await deposit(user, amount)
+
+            await expect(
+                staking.connect(user).emergencyWithdraw(erc20Mock.address),
+            ).to.be.revertedWith('At least 10 epochs must pass without success')
+        })
+
+        it('Reverts if user has balance, more than 10 epochs passed but somebody else did a withdraw',
+            async function () {
+                await deposit(user, amount)
+                await deposit(owner, amount)
+
+                await staking.manualEpochInit([erc20Mock.address], 2)
+                await staking.manualEpochInit([erc20Mock.address], 3)
+                await staking.manualEpochInit([erc20Mock.address], 4)
+
+                await moveAtEpoch(5)
+                await withdraw(owner, amount)
+
+                await moveAtEpoch(11)
+
+                await expect(
+                    staking.connect(user).emergencyWithdraw(erc20Mock.address),
+                ).to.be.revertedWith('At least 10 epochs must pass without success')
+            },
+        )
+
+        it('Works if more than 10 epochs passed with no withdraw', async function () {
+            await deposit(user, amount)
+            await moveAtEpoch(11)
+
+            await expect(
+                staking.connect(user).emergencyWithdraw(erc20Mock.address),
+            ).to.not.be.reverted
+
+            expect(await erc20Mock.transferCalled()).to.be.true
+            expect(await erc20Mock.transferRecipient()).to.be.equal(userAddr)
+            expect((await erc20Mock.transferAmount()).toString()).to.be.equal(amount.toString())
+            expect(await staking.balanceOf(userAddr, erc20Mock.address)).to.be.equal(0)
+        })
+    })
+
     async function getBlockTimestamp () {
         const block = await ethers.provider.send('eth_getBlockByNumber', ['latest', false])
 
