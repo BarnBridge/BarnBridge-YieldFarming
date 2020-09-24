@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('@nomiclabs/buidler');
+const { expect } = require('chai')
+const { ethers } = require('@nomiclabs/buidler')
 
 describe('CommunityVault', function () {
     let owner, user, communityVault, userAddr, ownerAddr, communityVaultAddr, creatorAccount, creatorAccountAddr
@@ -24,6 +24,7 @@ describe('CommunityVault', function () {
         communityVault = await CommunityVault.deploy(bondToken.address)
         communityVaultAddr = communityVault.address
     })
+    
     describe('General Contract checks', function () {
         it('should be deployed', async function () {
             expect(communityVault.address).to.not.equal(0)
@@ -42,11 +43,13 @@ describe('CommunityVault', function () {
                 'Ownable: caller is not the owner',
             )
         })
+
         it('should set allowance as owner', async function () {
             await bondToken.mint(communityVaultAddr, distributedAmount)
             await communityVault.connect(creatorAccount).setAllowance(userAddr, distributedAmount)
             expect(await bondToken.allowance(communityVaultAddr, userAddr)).to.be.equal(distributedAmount)
         })
+
         it('should transfer ownership', async function () {
             expect(await communityVault.owner()).to.be.equal(creatorAccountAddr)
             await expect(communityVault.connect(creatorAccount).transferOwnership(ownerAddr)).to.emit(
@@ -55,5 +58,11 @@ describe('CommunityVault', function () {
         })
     })
 
-
+    describe('Events', function () {
+        it('setAllowance emits SetAllowance', async function () {
+            await bondToken.mint(communityVaultAddr, distributedAmount)
+            await expect(communityVault.connect(creatorAccount).setAllowance(userAddr, distributedAmount))
+                .to.emit(communityVault, 'SetAllowance')
+        })
+    })
 })
