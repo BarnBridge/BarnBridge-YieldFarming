@@ -2,6 +2,7 @@ const config = require('./config')
 
 usePlugin('@nomiclabs/buidler-waffle')
 usePlugin("@nomiclabs/buidler-etherscan");
+usePlugin("buidler-gas-reporter");
 usePlugin('solidity-coverage')
 
 // This is a sample Buidler task. To learn how to create your own go to
@@ -29,4 +30,8 @@ module.exports = {
 
     networks: config.networks,
     etherscan: config.etherscan,
+
+    gasReporter: {
+        enabled: !!(process.env.REPORT_GAS),
+    }
 }

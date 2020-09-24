@@ -120,8 +120,8 @@ describe('Staking', function () {
             })
 
             it('Deposit at random points inside an epoch sets the correct effective balance', async function () {
-                await staking.manualEpochInit([erc20Mock.address], 0)
                 await moveAtEpoch(1)
+                await staking.manualEpochInit([erc20Mock.address], 0)
 
                 const NUM_CHECKS = 5
                 for (let i = 0; i < NUM_CHECKS; i++) {
@@ -145,8 +145,8 @@ describe('Staking', function () {
             })
 
             it('deposit in middle of epoch 1', async function () {
-                await staking.manualEpochInit([erc20Mock.address], 0)
                 await moveAtEpoch(1)
+                await staking.manualEpochInit([erc20Mock.address], 0)
 
                 await setNextBlockTimestamp(getEpochStart(1) + Math.floor(epochDuration / 2))
 
@@ -163,15 +163,16 @@ describe('Staking', function () {
             })
 
             it('deposit epoch 1, deposit epoch 4', async function () {
-                await staking.manualEpochInit([erc20Mock.address], 0)
                 await moveAtEpoch(1)
+                await staking.manualEpochInit([erc20Mock.address], 0)
 
                 await setNextBlockTimestamp(getEpochStart(1) + Math.floor(epochDuration / 2))
                 await deposit(user, amount)
 
-                await staking.manualEpochInit([erc20Mock.address], 3)
 
                 await moveAtEpoch(4)
+                await staking.manualEpochInit([erc20Mock.address], 3)
+
                 await setNextBlockTimestamp(getEpochStart(4) + Math.floor(epochDuration / 2))
 
                 expect(await getEpochUserBalance(userAddr, 4)).to.equal(amount)
@@ -190,8 +191,8 @@ describe('Staking', function () {
             })
 
             it('deposit epoch 1, deposit epoch 2', async function () {
-                await staking.manualEpochInit([erc20Mock.address], 0)
                 await moveAtEpoch(1)
+                await staking.manualEpochInit([erc20Mock.address], 0)
                 await setNextBlockTimestamp(getEpochStart(1) + Math.floor(epochDuration / 2))
                 await deposit(user, amount)
 
@@ -214,15 +215,14 @@ describe('Staking', function () {
             })
 
             it('deposit epoch 1, deposit epoch 5, deposit epoch 5', async function () {
-                await staking.manualEpochInit([erc20Mock.address], 0)
                 await moveAtEpoch(1)
+                await staking.manualEpochInit([erc20Mock.address], 0)
                 await setNextBlockTimestamp(getEpochStart(1) + Math.floor(epochDuration / 2))
                 await deposit(user, amount)
 
+                await moveAtEpoch(5)
                 await staking.manualEpochInit([erc20Mock.address], 3)
                 await staking.manualEpochInit([erc20Mock.address], 4)
-
-                await moveAtEpoch(5)
 
                 await setNextBlockTimestamp(getEpochStart(5) + Math.floor(epochDuration / 2))
                 await deposit(user, amount)
@@ -293,15 +293,14 @@ describe('Staking', function () {
             })
 
             it('deposit epoch 1, withdraw epoch 5', async function () {
+                await moveAtEpoch(1)
                 await staking.manualEpochInit([erc20Mock.address], 0)
 
-                await moveAtEpoch(1)
                 await deposit(user, amount)
 
+                await moveAtEpoch(5)
                 await staking.manualEpochInit([erc20Mock.address], 3)
                 await staking.manualEpochInit([erc20Mock.address], 4)
-
-                await moveAtEpoch(5)
 
                 const ts = getEpochStart(1) + 24 * 60 * 60
                 await setNextBlockTimestamp(ts)
@@ -313,13 +312,10 @@ describe('Staking', function () {
             })
 
             it('deposit epoch 1, withdraw epoch 2', async function () {
+                await moveAtEpoch(1)
                 await staking.manualEpochInit([erc20Mock.address], 0)
 
-                await moveAtEpoch(1)
                 await deposit(user, amount)
-
-                await staking.manualEpochInit([erc20Mock.address], 3)
-                await staking.manualEpochInit([erc20Mock.address], 4)
 
                 await moveAtEpoch(2)
 
@@ -333,15 +329,14 @@ describe('Staking', function () {
             })
 
             it('deposit epoch 1, deposit epoch 5, withdraw epoch 5 half amount', async function () {
+                await moveAtEpoch(1)
                 await staking.manualEpochInit([erc20Mock.address], 0)
 
-                await moveAtEpoch(1)
                 await deposit(user, amount)
 
+                await moveAtEpoch(5)
                 await staking.manualEpochInit([erc20Mock.address], 3)
                 await staking.manualEpochInit([erc20Mock.address], 4)
-
-                await moveAtEpoch(5)
 
                 const ts = getEpochStart(1) + 24 * 60 * 60
                 await setNextBlockTimestamp(ts)
@@ -375,15 +370,14 @@ describe('Staking', function () {
             })
 
             it('deposit epoch 1, deposit epoch 5, withdraw epoch 5 more than deposited', async function () {
+                await moveAtEpoch(1)
                 await staking.manualEpochInit([erc20Mock.address], 0)
 
-                await moveAtEpoch(1)
                 await deposit(user, amount)
 
+                await moveAtEpoch(5)
                 await staking.manualEpochInit([erc20Mock.address], 3)
                 await staking.manualEpochInit([erc20Mock.address], 4)
-
-                await moveAtEpoch(5)
 
                 const ts = getEpochStart(1) + 24 * 60 * 60
                 await setNextBlockTimestamp(ts)
@@ -448,9 +442,9 @@ describe('Staking', function () {
             expect(await getEpochPoolSize(1)).to.be.equal(amount.toString())
             expect(await getEpochUserBalance(userAddr, 1)).to.be.equal(amount.toString())
 
+            await moveAtEpoch(3)
             await staking.manualEpochInit([erc20Mock.address], 2)
 
-            await moveAtEpoch(3)
             await withdraw(user, amount)
 
             expect(await getEpochPoolSize(4)).to.be.equal('0')
@@ -471,11 +465,11 @@ describe('Staking', function () {
         })
 
         it('deposit in epoch 3, withdraw in epoch 3', async function () {
+            await moveAtEpoch(3)
             await staking.manualEpochInit([erc20Mock.address], 0)
             await staking.manualEpochInit([erc20Mock.address], 1)
             await staking.manualEpochInit([erc20Mock.address], 2)
 
-            await moveAtEpoch(3)
             await deposit(user, amount)
 
             expect(await getEpochPoolSize(4)).to.be.equal(amount.toString())
@@ -488,10 +482,10 @@ describe('Staking', function () {
         })
 
         it('deposit in epoch 2, withdraw in epoch 3', async function () {
+            await moveAtEpoch(2)
             await staking.manualEpochInit([erc20Mock.address], 0)
             await staking.manualEpochInit([erc20Mock.address], 1)
 
-            await moveAtEpoch(2)
             await deposit(user, amount)
 
             expect(await getEpochPoolSize(3)).to.be.equal(amount.toString())
@@ -553,9 +547,9 @@ describe('Staking', function () {
         })
 
         it('multiple deposits in same epoch', async function () {
+            await moveAtEpoch(1)
             await staking.manualEpochInit([erc20Mock.address], 0)
 
-            await moveAtEpoch(1)
             await deposit(user, amount)
             await deposit(user, amount)
 
@@ -585,9 +579,8 @@ describe('Staking', function () {
         })
 
         it('deposit epoch 1, deposit epoch 3, withdraw epoch 3', async function () {
-            await staking.manualEpochInit([erc20Mock.address], 0)
-
             await moveAtEpoch(1)
+            await staking.manualEpochInit([erc20Mock.address], 0)
 
             await deposit(user, amount)
             expect(await getEpochUserBalance(userAddr, 2)).to.be.equal(amount.toString())
@@ -605,16 +598,16 @@ describe('Staking', function () {
         })
 
         it('deposit epoch 1, deposit epoch 4, deposit epoch 5, withdraw epoch 5', async function () {
+            await moveAtEpoch(1)
             await staking.manualEpochInit([erc20Mock.address], 0)
 
-            await moveAtEpoch(1)
             await deposit(user, amount)
             expect(await getEpochUserBalance(userAddr, 2)).to.be.equal(amount.toString())
             expect(await getEpochPoolSize(2)).to.be.equal(amount.toString())
 
+            await moveAtEpoch(4)
             await staking.manualEpochInit([erc20Mock.address], 3)
 
-            await moveAtEpoch(4)
             await deposit(user, amount)
 
             await moveAtEpoch(5)
@@ -645,8 +638,8 @@ describe('Staking', function () {
         })
 
         it('Returns pool size when epoch is initialized', async function () {
-            await staking.manualEpochInit([erc20Mock.address], 0)
             await moveAtEpoch(1)
+            await staking.manualEpochInit([erc20Mock.address], 0)
             await deposit(user, amount)
 
             expect(await getEpochPoolSize(2)).to.be.equal(amount.toString())
@@ -661,8 +654,8 @@ describe('Staking', function () {
         })
 
         it('Returns correct balance where there was an action at some point', async function () {
-            await staking.manualEpochInit([erc20Mock.address], 0)
             await moveAtEpoch(1)
+            await staking.manualEpochInit([erc20Mock.address], 0)
             await deposit(user, amount)
 
             expect(await getEpochPoolSize(79)).to.be.equal(amount.toString())
@@ -739,11 +732,11 @@ describe('Staking', function () {
                 await deposit(user, amount)
                 await deposit(owner, amount)
 
+                await moveAtEpoch(5)
                 await staking.manualEpochInit([erc20Mock.address], 2)
                 await staking.manualEpochInit([erc20Mock.address], 3)
                 await staking.manualEpochInit([erc20Mock.address], 4)
 
-                await moveAtEpoch(5)
                 await withdraw(owner, amount)
 
                 await moveAtEpoch(11)
