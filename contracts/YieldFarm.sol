@@ -136,16 +136,16 @@ contract YieldFarm {
         // reward
     }
 
-    function _getPoolSize (uint128 epochId) internal view returns (uint) {
-        uint valueUsdc = _staking.getEpochPoolSize(_usdc, epochId).mul(10**12); // because usdc has 6 decimals
+    function _getPoolSize(uint128 epochId) internal view returns (uint) {
+        uint valueUsdc = _staking.getEpochPoolSize(_usdc, epochId).mul(10 ** 12); // because usdc has 6 decimals
         uint valueSusd = _staking.getEpochPoolSize(_susd, epochId);
         uint valueDai = _staking.getEpochPoolSize(_dai, epochId);
         return valueUsdc.add(valueSusd).add(valueDai);
     }
 
 
-    function _getUserBalancePerEpoch (address userAddress, uint128 epochId) internal view returns (uint){
-        uint valueUsdc = _staking.getEpochUserBalance(userAddress, _usdc, epochId).mul(10**12); // because usdc has 6 decimals
+    function _getUserBalancePerEpoch(address userAddress, uint128 epochId) internal view returns (uint){
+        uint valueUsdc = _staking.getEpochUserBalance(userAddress, _usdc, epochId).mul(10 ** 12); // because usdc has 6 decimals
         uint valueSusd = _staking.getEpochUserBalance(userAddress, _susd, epochId);
         uint valueDai = _staking.getEpochUserBalance(userAddress, _dai, epochId);
         return valueUsdc.add(valueSusd).add(valueDai);
