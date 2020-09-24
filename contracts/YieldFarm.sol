@@ -31,10 +31,13 @@ contract YieldFarm {
     uint[] private epochs = new uint[](NR_OF_EPOCHS + 1);
     uint private _totalAmountPerEpoch;
     uint128 public lastInitializedEpoch;
-    mapping (address => uint128) lastEpochIdHarvested;
+    mapping(address => uint128) lastEpochIdHarvested;
     uint epochDuration; // init from staking contract
     uint epochStart; // init from staking contract
 
+    // events
+    event MassHarvest(address indexed user, uint256 epochsHarvested, uint256 totalValue);
+    event Harvest(address indexed user, uint128 indexed epochId, uint256 amount);
 
     // modifiers
     // constructor
@@ -51,19 +54,24 @@ contract YieldFarm {
     }
 
     // public methods
-    function massHarvest () external returns (uint){
+    function massHarvest() external returns (uint){
         uint totalDistributedValue;
         uint epochId = _getEpochId().sub(1);
         if (epochId > NR_OF_EPOCHS) {
             epochId = NR_OF_EPOCHS;
         }
-        for(uint128 i = lastEpochIdHarvested[msg.sender] + 1; i <= epochId; i++) {
+
+        emit MassHarvest(msg.sender, epochId - lastEpochIdHarvested[msg.sender], totalDistributedValue);
+
+        for (uint128 i = lastEpochIdHarvested[msg.sender] + 1; i <= epochId; i++) {
             // i = epochId
             totalDistributedValue += _harvest(i);
         }
+
         if (totalDistributedValue > 0) {
             _bond.transferFrom(_communityVault, msg.sender, totalDistributedValue);
         }
+
         return totalDistributedValue;
     }
     function harvest (uint128 epochId) external returns (uint){
@@ -74,22 +82,25 @@ contract YieldFarm {
         if (userReward > 0) {
             _bond.transferFrom(_communityVault, msg.sender, userReward);
         }
+        emit Harvest(msg.sender, epochId, userReward);
         return userReward;
     }
 
-    function initEpoch (uint128 epochId) external {
+    function initEpoch(uint128 epochId) external {
         _initEpoch(epochId);
     }
 
     // views
-    function getPoolSize (uint128 epochId) external view returns (uint) {
+    function getPoolSize(uint128 epochId) external view returns (uint) {
         return _getPoolSize(epochId);
     }
-    function getCurrentEpoch () external view returns (uint) {
+
+    function getCurrentEpoch() external view returns (uint) {
         return _getEpochId();
     }
-    function getEpochStake (address userAddress, uint128 epochId) external view returns (uint) {
-        return _getUserBalancePerEpoch (userAddress, epochId);
+
+    function getEpochStake(address userAddress, uint128 epochId) external view returns (uint) {
+        return _getUserBalancePerEpoch(userAddress, epochId);
     }
 
     function userLastEpochIdHarvested() external view returns (uint){
@@ -98,8 +109,8 @@ contract YieldFarm {
 
     // internal methods
 
-    function _initEpoch (uint128 epochId) internal {
-        require (lastInitializedEpoch.add(1) == epochId, "Epoch can be init only in order");
+    function _initEpoch(uint128 epochId) internal {
+        require(lastInitializedEpoch.add(1) == epochId, "Epoch can be init only in order");
         lastInitializedEpoch = epochId;
         epochs[epochId] = _getPoolSize(epochId);
     }
@@ -111,25 +122,26 @@ contract YieldFarm {
         // Give user reward
         lastEpochIdHarvested[msg.sender] = epochId;
         return _totalAmountPerEpoch
-            .mul(_getUserBalancePerEpoch(msg.sender, epochId))
-            .div(epochs[epochId]);
+        .mul(_getUserBalancePerEpoch(msg.sender, epochId))
+        .div(epochs[epochId]);
     }
 
-    function _getPoolSize (uint128 epochId) internal view returns (uint) {
-        uint valueUsdc = _staking.getEpochPoolSize(_usdc, epochId).mul(10**12); // because usdc has 6 decimals
+    function _getPoolSize(uint128 epochId) internal view returns (uint) {
+        uint valueUsdc = _staking.getEpochPoolSize(_usdc, epochId).mul(10 ** 12); // because usdc has 6 decimals
         uint valueSusd = _staking.getEpochPoolSize(_susd, epochId);
         uint valueDai = _staking.getEpochPoolSize(_dai, epochId);
         return valueUsdc.add(valueSusd).add(valueDai);
     }
 
-    function _getUserBalancePerEpoch (address userAddress, uint128 epochId) internal view returns (uint){
-        uint valueUsdc = _staking.getEpochUserBalance(userAddress, _usdc, epochId).mul(10**12); // because usdc has 6 decimals
+
+    function _getUserBalancePerEpoch(address userAddress, uint128 epochId) internal view returns (uint){
+        uint valueUsdc = _staking.getEpochUserBalance(userAddress, _usdc, epochId).mul(10 ** 12); // because usdc has 6 decimals
         uint valueSusd = _staking.getEpochUserBalance(userAddress, _susd, epochId);
         uint valueDai = _staking.getEpochUserBalance(userAddress, _dai, epochId);
         return valueUsdc.add(valueSusd).add(valueDai);
     }
 
-    function _getEpochId () internal view returns (uint128 epochId) {
+    function _getEpochId() internal view returns (uint128 epochId) {
         if (block.timestamp < epochStart) {
             return 0;
         }

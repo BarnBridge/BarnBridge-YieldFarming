@@ -762,6 +762,40 @@ describe('Staking', function () {
         })
     })
 
+    describe('Events', function () {
+        beforeEach(async function () {
+            await erc20Mock.mint(userAddr, amount.mul(10))
+            await erc20Mock.connect(user).approve(staking.address, amount.mul(10))
+        })
+
+        it('Deposit emits Deposit event', async function () {
+            await expect(staking.connect(user).deposit(erc20Mock.address, 10))
+                .to.emit(staking, 'Deposit')
+        })
+
+        it('Withdraw emits Withdraw event', async function () {
+            await deposit(user, amount)
+
+            await expect(staking.connect(user).withdraw(erc20Mock.address, 10))
+                .to.emit(staking, 'Withdraw')
+        })
+
+        it('ManualEpochInit emits ManualEpochInit event', async function () {
+            await moveAtEpoch(1)
+            await expect(staking.manualEpochInit([erc20Mock.address], 0))
+                .to.emit(staking, 'ManualEpochInit')
+        })
+
+        it('EmergencyWithdraw emits EmergencyWithdraw event', async function () {
+            await deposit(user, amount)
+
+            await moveAtEpoch(20)
+
+            await expect(staking.connect(user).emergencyWithdraw(erc20Mock.address))
+                .to.emit(staking, 'EmergencyWithdraw')
+        })
+    })
+
     async function getBlockTimestamp () {
         const block = await ethers.provider.send('eth_getBlockByNumber', ['latest', false])
 
