@@ -26,6 +26,7 @@ contract YieldFarmLP {
 
 
     uint[] private epochs = new uint[](NR_OF_EPOCHS + 1);
+    uint private _totalAmountPerEpoch;
     uint128 public lastInitializedEpoch;
     mapping (address => uint128) lastEpochIdHarvested;
     uint epochDuration; // init from staking contract
@@ -41,6 +42,7 @@ contract YieldFarmLP {
         _communityVault = communityVault;
         epochDuration = _staking.epochDuration();
         epochStart = _staking.epoch1Start() + epochDuration;
+        _totalAmountPerEpoch = TOTAL_DISTRIBUTED_AMOUNT.mul(10**18).div(NR_OF_EPOCHS);
     }
 
     // public methods
@@ -60,6 +62,9 @@ contract YieldFarmLP {
         return totalDistributedValue;
     }
     function harvest (uint128 epochId) external returns (uint){
+        require (_getEpochId() > epochId, "This epoch is in the future");
+        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 100");
+        require (lastEpochIdHarvested[msg.sender].add(1) == epochId, "Epochs needs to be harvested in order");
         uint userReward = _harvest(epochId);
         if (userReward > 0) {
             _bond.transferFrom(_communityVault, msg.sender, userReward);
@@ -91,29 +96,18 @@ contract YieldFarmLP {
     function _initEpoch (uint128 epochId) internal {
         require (lastInitializedEpoch.add(1) == epochId, "Epoch can be init only in order");
         lastInitializedEpoch = epochId;
-        uint epochPoolSizeValue = _getPoolSize(epochId);
-        epochs[epochId] = epochPoolSizeValue;
+        epochs[epochId] = _getPoolSize(epochId);
     }
 
     function _harvest (uint128 epochId) internal returns (uint) {
-        // check that epoch is finished
-        require (_getEpochId() > epochId, "This epoch is in the future");
-        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 100");
-        require (lastEpochIdHarvested[msg.sender].add(1) == epochId, "Epochs needs to be harvested in order");
-
         if (lastInitializedEpoch < epochId) {
             _initEpoch(epochId);
         }
         // Give user reward
-        uint userReward;
-        uint userBalancePerEpoch = _getUserBalancePerEpoch(msg.sender, epochId);
-        if (userBalancePerEpoch > 0 && epochs[epochId] > 0) {
-            userReward = TOTAL_DISTRIBUTED_AMOUNT.mul(10**18).div(NR_OF_EPOCHS)
-            .mul(userBalancePerEpoch)
-            .div(epochs[epochId]);
-        }
         lastEpochIdHarvested[msg.sender] = epochId;
-        return userReward; // reward
+        return _totalAmountPerEpoch
+            .mul(_getUserBalancePerEpoch(msg.sender, epochId))
+            .div(epochs[epochId]);
     }
 
     function _getPoolSize (uint128 epochId) internal view returns (uint) {
