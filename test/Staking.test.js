@@ -670,19 +670,24 @@ describe('Staking', function () {
 
             // after 100 seconds, multiplier should be 0.9998
             await moveAtTimestamp(epoch1Start + 100)
-            expect(await staking.currentEpochMultiplier()).to.be.equal(BN.from('999834656084656084'))
+
+            let expectedMultiplier = multiplierAtTs(1, await getBlockTimestamp())
+            expect(await staking.currentEpochMultiplier()).to.be.equal(expectedMultiplier)
 
             // after 1h, multiplier should be  0.9940
             await moveAtTimestamp(epoch1Start + 3600)
-            expect(await staking.currentEpochMultiplier()).to.be.equal(BN.from('994047619047619047'))
+            expectedMultiplier = multiplierAtTs(1, await getBlockTimestamp())
+            expect(await staking.currentEpochMultiplier()).to.be.equal(expectedMultiplier)
 
             // after 1 day, multiplier should be 0.8571
             await moveAtTimestamp(epoch1Start + 86400)
-            expect(await staking.currentEpochMultiplier()).to.be.equal(BN.from('857142857142857142'))
+            expectedMultiplier = multiplierAtTs(1, await getBlockTimestamp())
+            expect(await staking.currentEpochMultiplier()).to.be.equal(expectedMultiplier)
 
             // after 3.5 days (half time; 86400 + 216000), multiplier should be 0.5
             await moveAtTimestamp(epoch1Start + 302400)
-            expect(await staking.currentEpochMultiplier()).to.be.equal(scaleMultiplier(0.5, 1))
+            expectedMultiplier = multiplierAtTs(1, await getBlockTimestamp())
+            expect(await staking.currentEpochMultiplier()).to.be.equal(expectedMultiplier)
         })
     })
 
