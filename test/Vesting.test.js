@@ -61,7 +61,6 @@ describe('Vesting', function () {
         })
 
         it('should have the epoch 0', async function () {
-            moveAtEpoch(-10)
             expect(await vesting.getCurrentEpoch()).to.be.equal(0)
         })
     })
@@ -82,8 +81,8 @@ describe('Vesting', function () {
 
         it('should mint for 100 week', async function () {
             await bondToken.mint(vesting.address, distributedAmount) // set tokens
-            moveAtEpoch(1023)
-            expect(await vesting.getCurrentEpoch()).to.be.equal(1023)
+            moveAtEpoch(104)
+            expect(await vesting.getCurrentEpoch()).to.be.equal(104)
             await vesting.connect(user).claim()
             expect(await bondToken.balanceOf(userAddr)).to.be.equal(distributedAmount)
             expect(await vesting.balance()).to.be.equal(0)
@@ -91,13 +90,13 @@ describe('Vesting', function () {
         })
 
         it('should emit', async function () {
-            await bondToken.mint(vesting.address, distributedAmount) // set tokens
             moveAtEpoch(59)
+            await bondToken.mint(vesting.address, distributedAmount) // set tokens
             expect(vesting.connect(user).claim()).to.emit(bondToken, 'Transfer')
         })
         it('should not emit', async function () {
+            moveAtEpoch(60)
             await bondToken.mint(vesting.address, distributedAmount) // set tokens
-            moveAtEpoch(59)
             await vesting.connect(user).claim()
             expect(vesting.connect(user).claim()).to.not.emit(bondToken, 'Transfer')
         })
