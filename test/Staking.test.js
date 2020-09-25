@@ -169,7 +169,6 @@ describe('Staking', function () {
                 await setNextBlockTimestamp(getEpochStart(1) + Math.floor(epochDuration / 2))
                 await deposit(user, amount)
 
-
                 await moveAtEpoch(4)
                 await staking.manualEpochInit([erc20Mock.address], 3)
 

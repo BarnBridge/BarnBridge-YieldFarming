@@ -1,10 +1,8 @@
 const { expect } = require('chai')
 const { ethers } = require('@nomiclabs/buidler')
 
-const BN = ethers.BigNumber
-
 describe('Vesting', function () {
-    let owner, user, userAddr, ownerAddr, creatorAccount, creatorAccountAddr
+    let owner, user, userAddr
     let bondToken, vesting
     const distributedAmount = ethers.BigNumber.from(800000).mul(ethers.BigNumber.from(10).pow(18))
     let snapshotId
@@ -15,10 +13,7 @@ describe('Vesting', function () {
     beforeEach(async function () {
         snapshotId = await ethers.provider.send('evm_snapshot')
         const [creator, ownerSigner, userSigner] = await ethers.getSigners()
-        creatorAccount = creator
-        creatorAccountAddr = await creatorAccount.getAddress()
         owner = ownerSigner
-        ownerAddr = await owner.getAddress()
         user = userSigner
         userAddr = await user.getAddress()
 
@@ -28,6 +23,7 @@ describe('Vesting', function () {
         bondToken = await ERC20Mock.deploy()
         vesting = await Vesting.deploy(userAddr, bondToken.address, epoch1Start, distributedAmount)
     })
+
     afterEach(async function () {
         await ethers.provider.send('evm_revert', [snapshotId])
     })
@@ -56,10 +52,9 @@ describe('Vesting', function () {
             expect(vesting.connect(owner).claim()).to.be.revertedWith('Ownable: caller is not the owner')
         })
         it('should have the epoch1', async function () {
-            moveAtEpoch(1)
+            await moveAtEpoch(1)
             expect(await vesting.getCurrentEpoch()).to.be.equal(1)
         })
-
         it('should have the epoch 0', async function () {
             expect(await vesting.getCurrentEpoch()).to.be.equal(0)
         })
@@ -72,31 +67,29 @@ describe('Vesting', function () {
         })
         it('should mint for 1 week', async function () {
             await bondToken.mint(vesting.address, distributedAmount) // set tokens
-            moveAtEpoch(2)
+            await moveAtEpoch(2)
             await vesting.connect(user).claim()
             expect(await bondToken.balanceOf(userAddr)).to.be.equal(distributedAmount.div(100))
             expect(await vesting.balance()).to.be.equal(distributedAmount.sub(distributedAmount.div(100)))
             expect(await vesting.lastClaimedEpoch()).to.be.equal(1)
         })
-
         it('should mint for 100 week', async function () {
             await bondToken.mint(vesting.address, distributedAmount) // set tokens
-            moveAtEpoch(104)
+            await moveAtEpoch(104)
             expect(await vesting.getCurrentEpoch()).to.be.equal(104)
             await vesting.connect(user).claim()
             expect(await bondToken.balanceOf(userAddr)).to.be.equal(distributedAmount)
             expect(await vesting.balance()).to.be.equal(0)
             expect(await vesting.lastClaimedEpoch()).to.be.equal(100)
         })
-
         it('should emit', async function () {
-            moveAtEpoch(59)
             await bondToken.mint(vesting.address, distributedAmount) // set tokens
+            await moveAtEpoch(59)
             expect(vesting.connect(user).claim()).to.emit(bondToken, 'Transfer')
         })
         it('should not emit', async function () {
-            moveAtEpoch(60)
             await bondToken.mint(vesting.address, distributedAmount) // set tokens
+            await moveAtEpoch(60)
             await vesting.connect(user).claim()
             expect(vesting.connect(user).claim()).to.not.emit(bondToken, 'Transfer')
         })
@@ -112,6 +105,7 @@ describe('Vesting', function () {
         const diff = timestamp - currentTs
         await ethers.provider.send('evm_increaseTime', [diff])
     }
+
     async function moveAtEpoch (epoch) {
         await setNextBlockTimestamp(epoch1Start + epochDuration * (epoch - 1))
         await ethers.provider.send('evm_mine')

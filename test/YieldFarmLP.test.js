@@ -4,14 +4,9 @@ const { ethers } = require('@nomiclabs/buidler')
 describe('YieldFarm Liquidity Pool', function () {
     let yieldFarm
     let staking
-    let owner, user, communityVault, userAddr, ownerAddr, communityVaultAddr
+    let user, communityVault, userAddr, communityVaultAddr
     let bondToken, uniLP
     const distributedAmount = ethers.BigNumber.from(2000000).mul(ethers.BigNumber.from(10).pow(18))
-    // let barnBridge = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
-    // let usdc = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
-    // let susd = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
-    // let dai = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
-    // let uniLP = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
     let snapshotId
     const epochDuration = 1000
     const NR_OF_EPOCHS = 100
@@ -19,10 +14,7 @@ describe('YieldFarm Liquidity Pool', function () {
     const amount = ethers.BigNumber.from(100).mul(ethers.BigNumber.from(10).pow(18))
     beforeEach(async function () {
         snapshotId = await ethers.provider.send('evm_snapshot')
-        const [creator, ownerSigner, userSigner] = await ethers.getSigners()
-        owner = ownerSigner
-        ownerAddr = await owner.getAddress()
-
+        const [creator, userSigner] = await ethers.getSigners()
         user = userSigner
         userAddr = await user.getAddress()
 
