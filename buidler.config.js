@@ -3,7 +3,8 @@ const config = require('./config')
 usePlugin('@nomiclabs/buidler-waffle')
 usePlugin("@nomiclabs/buidler-etherscan");
 usePlugin("buidler-gas-reporter");
-usePlugin('solidity-coverage')
+usePlugin('solidity-coverage');
+usePlugin('buidler-abi-exporter');
 
 // This is a sample Buidler task. To learn how to create your own go to
 // https://buidler.dev/guides/create-task.html
@@ -33,5 +34,11 @@ module.exports = {
 
     gasReporter: {
         enabled: !!(process.env.REPORT_GAS),
-    }
+    },
+
+    abiExporter: {
+        path: './abi',
+        only: ['Staking', 'YieldFarm', 'YieldFarmLP', 'CommunityVault'],
+        clear: true,
+    },
 }
