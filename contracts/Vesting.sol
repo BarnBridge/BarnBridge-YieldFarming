@@ -4,8 +4,9 @@ pragma solidity ^0.6.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Vesting is Ownable {
+contract Vesting is Ownable, ReentrancyGuard {
 
     using SafeMath for uint;
 
@@ -24,7 +25,7 @@ contract Vesting is Ownable {
         totalDistributedBalance = totalBalance;
     }
 
-    function claim () public onlyOwner {
+    function claim () public onlyOwner nonReentrant {
         uint balance;
         uint currentEpoch = getCurrentEpoch();
         if (currentEpoch > NUMBER_OF_EPOCHS + 1) {

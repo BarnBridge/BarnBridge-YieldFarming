@@ -16,7 +16,7 @@ contract YieldFarm {
     uint public constant TOTAL_DISTRIBUTED_AMOUNT = 800000;
     uint public constant NR_OF_EPOCHS = 24;
 
-    // state variables
+     // state variables
 
     // addreses
     address private _usdc;
@@ -29,6 +29,7 @@ contract YieldFarm {
 
 
     uint[] private epochs = new uint[](NR_OF_EPOCHS + 1);
+    uint private _totalAmountPerEpoch;
     uint128 public lastInitializedEpoch;
     mapping(address => uint128) private lastEpochIdHarvested;
     uint public epochDuration; // init from staking contract
@@ -49,6 +50,7 @@ contract YieldFarm {
         _communityVault = communityVault;
         epochStart = _staking.epoch1Start();
         epochDuration = _staking.epochDuration();
+        _totalAmountPerEpoch = TOTAL_DISTRIBUTED_AMOUNT.mul(10**18).div(NR_OF_EPOCHS);
     }
 
     // public methods
@@ -72,15 +74,15 @@ contract YieldFarm {
 
         return totalDistributedValue;
     }
-
-    function harvest(uint128 epochId) external returns (uint){
+    function harvest (uint128 epochId) external returns (uint){
+        require (_getEpochId() > epochId, "This epoch is in the future");
+        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 24");
+        require (lastEpochIdHarvested[msg.sender].add(1) == epochId, "Harvest in order");
         uint userReward = _harvest(epochId);
         if (userReward > 0) {
             _bond.transferFrom(_communityVault, msg.sender, userReward);
         }
-
         emit Harvest(msg.sender, epochId, userReward);
-
         return userReward;
     }
 
@@ -110,30 +112,18 @@ contract YieldFarm {
     function _initEpoch(uint128 epochId) internal {
         require(lastInitializedEpoch.add(1) == epochId, "Epoch can be init only in order");
         lastInitializedEpoch = epochId;
-        uint epochPoolSizeValue = _getPoolSize(epochId);
-        epochs[epochId] = epochPoolSizeValue;
+        epochs[epochId] = _getPoolSize(epochId);
     }
 
-    function _harvest(uint128 epochId) internal returns (uint) {
-        // check that epoch is finished
-        require(_getEpochId() > epochId, "This epoch is in the future");
-        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 24");
-        require(lastEpochIdHarvested[msg.sender].add(1) == epochId, "Harvest in order");
-
+    function _harvest (uint128 epochId) internal returns (uint) {
         if (lastInitializedEpoch < epochId) {
             _initEpoch(epochId);
         }
         // Give user reward
-        uint userReward;
-        uint userBalancePerEpoch = _getUserBalancePerEpoch(msg.sender, epochId);
-        if (userBalancePerEpoch > 0 && epochs[epochId] > 0) {
-            userReward = TOTAL_DISTRIBUTED_AMOUNT.mul(10 ** 18).div(NR_OF_EPOCHS)
-            .mul(userBalancePerEpoch)
-            .div(epochs[epochId]);
-        }
         lastEpochIdHarvested[msg.sender] = epochId;
-        return userReward;
-        // reward
+        return _totalAmountPerEpoch
+        .mul(_getUserBalancePerEpoch(msg.sender, epochId))
+        .div(epochs[epochId]);
     }
 
     function _getPoolSize(uint128 epochId) internal view returns (uint) {
