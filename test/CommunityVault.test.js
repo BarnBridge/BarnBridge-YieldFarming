@@ -5,8 +5,10 @@ describe('CommunityVault', function () {
     let owner, user, communityVault, userAddr, ownerAddr, communityVaultAddr, creatorAccount, creatorAccountAddr
     let bondToken
     const distributedAmount = ethers.BigNumber.from(800000).mul(ethers.BigNumber.from(10).pow(18))
+    let snapshotId
 
     beforeEach(async function () {
+        snapshotId = await ethers.provider.send('evm_snapshot')
         const [creator, ownerSigner, userSigner] = await ethers.getSigners()
         creatorAccount = creator
         creatorAccountAddr = await creatorAccount.getAddress()
@@ -24,7 +26,10 @@ describe('CommunityVault', function () {
         communityVault = await CommunityVault.deploy(bondToken.address)
         communityVaultAddr = communityVault.address
     })
-    
+    afterEach(async function () {
+        await ethers.provider.send('evm_revert', [snapshotId])
+    })
+
     describe('General Contract checks', function () {
         it('should be deployed', async function () {
             expect(communityVault.address).to.not.equal(0)
