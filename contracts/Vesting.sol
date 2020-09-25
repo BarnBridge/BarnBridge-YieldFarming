@@ -9,9 +9,9 @@ contract Vesting is Ownable {
 
     using SafeMath for uint;
 
-    uint constant NUMBER_OF_EPOCHS = 100;
-    uint constant EPOCH_DURATION = 604800; // 1 week duration
-    IERC20 _bond;
+    uint public constant NUMBER_OF_EPOCHS = 100;
+    uint public constant EPOCH_DURATION = 604800; // 1 week duration
+    IERC20 private _bond;
 
     uint public lastClaimedEpoch;
     uint private _startTime;
@@ -28,7 +28,9 @@ contract Vesting is Ownable {
         uint balance;
         uint currentEpoch = getCurrentEpoch();
         if (currentEpoch > NUMBER_OF_EPOCHS + 1) {
-            currentEpoch = NUMBER_OF_EPOCHS + 1;
+            lastClaimedEpoch = NUMBER_OF_EPOCHS;
+            _bond.transfer(owner(), _bond.balanceOf(address (this)));
+            return;
         }
 
         if (currentEpoch > lastClaimedEpoch) {

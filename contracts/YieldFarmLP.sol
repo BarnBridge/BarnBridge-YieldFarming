@@ -12,8 +12,8 @@ contract YieldFarmLP {
     using SafeMath for uint128;
 
     // constants
-    uint constant TOTAL_DISTRIBUTED_AMOUNT = 2000000;
-    uint NR_OF_EPOCHS = 100;
+    uint public constant TOTAL_DISTRIBUTED_AMOUNT = 2000000;
+    uint public constant NR_OF_EPOCHS = 100;
 
     // state variables
 
@@ -27,9 +27,9 @@ contract YieldFarmLP {
 
     uint[] private epochs = new uint[](NR_OF_EPOCHS + 1);
     uint128 public lastInitializedEpoch;
-    mapping(address => uint128) lastEpochIdHarvested;
-    uint epochDuration; // init from staking contract
-    uint epochStart; // init from staking contract
+    mapping(address => uint128) private lastEpochIdHarvested;
+    uint public epochDuration; // init from staking contract
+    uint public epochStart; // init from staking contract
 
     // events
     event MassHarvest(address indexed user, uint256 epochsHarvested, uint256 totalValue);
@@ -113,7 +113,7 @@ contract YieldFarmLP {
         // check that epoch is finished
         require(_getEpochId() > epochId, "This epoch is in the future");
         require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 100");
-        require(lastEpochIdHarvested[msg.sender].add(1) == epochId, "Epochs needs to be harvested in order");
+        require(lastEpochIdHarvested[msg.sender].add(1) == epochId, "Harvest in order");
 
         if (lastInitializedEpoch < epochId) {
             _initEpoch(epochId);
