@@ -76,7 +76,7 @@ contract YieldFarm {
     }
     function harvest (uint128 epochId) external returns (uint){
         require (_getEpochId() > epochId, "This epoch is in the future");
-        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 100");
+        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 24");
         require (lastEpochIdHarvested[msg.sender].add(1) == epochId, "Epochs needs to be harvested in order");
         uint userReward = _harvest(epochId);
         if (userReward > 0) {
