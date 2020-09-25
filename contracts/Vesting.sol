@@ -13,18 +13,16 @@ contract Vesting is Ownable {
     uint constant EPOCH_DURATION = 604800; // 1 week duration
     IERC20 _bond;
 
-    uint private _lastClaimedEpoch;
+    uint public lastClaimedEpoch;
     uint private _startTime;
-    uint private _totalBalance;
-
+    uint public totalDistributedBalance;
 
     constructor(address newOwner, address bondTokenAddress, uint startTime, uint totalBalance) public {
         transferOwnership(newOwner);
         _bond = IERC20(bondTokenAddress);
         _startTime = startTime;
-        _totalBalance = totalBalance;
+        totalDistributedBalance = totalBalance;
     }
-
 
     function claim () public onlyOwner {
         uint balance;
@@ -33,31 +31,21 @@ contract Vesting is Ownable {
             currentEpoch = NUMBER_OF_EPOCHS + 1;
         }
 
-        if (currentEpoch > _lastClaimedEpoch) {
-            balance = (currentEpoch - 1  - _lastClaimedEpoch) * _totalBalance / NUMBER_OF_EPOCHS;
+        if (currentEpoch > lastClaimedEpoch) {
+            balance = (currentEpoch - 1  - lastClaimedEpoch) * totalDistributedBalance / NUMBER_OF_EPOCHS;
         }
-        _lastClaimedEpoch = currentEpoch - 1;
+        lastClaimedEpoch = currentEpoch - 1;
         if (balance > 0) {
             _bond.transfer(owner(), balance);
         }
-    }
-
-    function lastClaimedEpoch () public view returns (uint) {
-        return _lastClaimedEpoch;
-    }
-
-    function totalDistributedBalance () public view returns (uint) {
-        return _totalBalance;
     }
 
     function balance () public view returns (uint){
         return _bond.balanceOf(address (this));
     }
 
-
     function getCurrentEpoch () public view returns (uint){
         if (block.timestamp < _startTime) return 0;
         return (block.timestamp - _startTime) / EPOCH_DURATION + 1;
     }
-
 }
