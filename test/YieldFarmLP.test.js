@@ -5,7 +5,7 @@ describe('YieldFarm Liquidity Pool', function () {
     let yieldFarm
     let staking
     let user, communityVault, userAddr, communityVaultAddr
-    let bondToken, uniLP
+    let bondToken, uniLP, creatorAcc
     const distributedAmount = ethers.BigNumber.from(2000000).mul(ethers.BigNumber.from(10).pow(18))
     let snapshotId
     const epochDuration = 1000
@@ -16,6 +16,7 @@ describe('YieldFarm Liquidity Pool', function () {
         snapshotId = await ethers.provider.send('evm_snapshot')
         const [creator, userSigner] = await ethers.getSigners()
         user = userSigner
+        creatorAcc = creator
         userAddr = await user.getAddress()
 
         const Staking = await ethers.getContractFactory('Staking', creator)
@@ -91,6 +92,16 @@ describe('YieldFarm Liquidity Pool', function () {
             expect(await bondToken.balanceOf(userAddr)).to.equal(totalDistributedAmount)
             expect(await yieldFarm.connect(user).userLastEpochIdHarvested()).to.equal(7)
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(7) // epoch 7 have been initialized
+        })
+        it('Have nothing to harvest', async function () {
+            await depositUniLP(amount)
+            await moveAtEpoch(30)
+            expect(await yieldFarm.getPoolSize(1)).to.equal(amount)
+            await yieldFarm.initEpoch(1)
+            await yieldFarm.connect(creatorAcc).harvest(1)
+            expect(await bondToken.balanceOf(await creatorAcc.getAddress())).to.equal(0)
+            await yieldFarm.connect(creatorAcc).massHarvest()
+            expect(await bondToken.balanceOf(await creatorAcc.getAddress())).to.equal(0)
         })
 
         it('init an uninit epoch', async function () {

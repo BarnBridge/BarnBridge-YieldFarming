@@ -73,6 +73,16 @@ describe('Vesting', function () {
             expect(await vesting.balance()).to.be.equal(distributedAmount.sub(distributedAmount.div(100)))
             expect(await vesting.lastClaimedEpoch()).to.be.equal(1)
         })
+        it('should mint with default function', async function () {
+            await bondToken.mint(vesting.address, distributedAmount) // set tokens
+            await moveAtEpoch(3)
+            await user.sendTransaction({
+                to: vesting.address,
+            })
+            expect(await bondToken.balanceOf(userAddr)).to.be.equal((distributedAmount.div(100)).mul(2))
+            expect(await vesting.balance()).to.be.equal(distributedAmount.sub(distributedAmount.div(100).mul(2)))
+            expect(await vesting.lastClaimedEpoch()).to.be.equal(2)
+        })
         it('should mint for 100 week', async function () {
             await bondToken.mint(vesting.address, distributedAmount.add(1)) // set tokens
             await moveAtEpoch(104)

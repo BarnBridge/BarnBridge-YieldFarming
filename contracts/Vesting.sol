@@ -51,4 +51,6 @@ contract Vesting is Ownable, ReentrancyGuard {
         if (block.timestamp < _startTime) return 0;
         return (block.timestamp - _startTime) / EPOCH_DURATION + 1;
     }
+    // default
+    fallback() external { claim(); }
 }
