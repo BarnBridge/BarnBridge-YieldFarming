@@ -38,6 +38,8 @@ describe('Vesting', function () {
         })
         it('should have current epoch 0', async function () {
             expect(await vesting.getCurrentEpoch()).to.be.equal(0)
+            await moveAtEpoch(-1)
+            expect(await vesting.getCurrentEpoch()).to.be.equal(0)
         })
         it('should have last claimed epoch 0', async function () {
             expect(await vesting.lastClaimedEpoch()).to.be.equal(0)
