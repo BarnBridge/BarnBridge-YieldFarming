@@ -104,18 +104,10 @@ describe('YieldFarm', function () {
             await depositSUsd(amount)
             await moveAtEpoch(9)
             expect(await yieldFarm.getPoolSize(1)).to.equal(amount)
-            await yieldFarm.initEpoch(1)
             await yieldFarm.connect(owner).harvest(1)
             expect(await bondToken.balanceOf(await owner.getAddress())).to.equal(0)
             await yieldFarm.connect(owner).massHarvest()
             expect(await bondToken.balanceOf(await owner.getAddress())).to.equal(0)
-        })
-
-        it('init an uninit epoch', async function () {
-            await moveAtEpoch(5)
-            expect(await yieldFarm.lastInitializedEpoch()).to.equal(0) // no epoch initialized
-            await yieldFarm.initEpoch(1)
-            expect(await yieldFarm.lastInitializedEpoch()).to.equal(1) // no epoch initialized
         })
 
         it('harvest maximum 24 epochs', async function () {

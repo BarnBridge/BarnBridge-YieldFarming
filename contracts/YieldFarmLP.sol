@@ -84,11 +84,6 @@ contract YieldFarmLP {
         return userReward;
     }
 
-    // public method to initialize the epoch
-    function initEpoch(uint128 epochId) external {
-        _initEpoch(epochId);
-    }
-
     // views
     // calls to the staking smart contract to retrieve the epoch total pool size
     function getPoolSize(uint128 epochId) external view returns (uint) {
