@@ -97,20 +97,11 @@ describe('YieldFarm Liquidity Pool', function () {
             await depositUniLP(amount)
             await moveAtEpoch(30)
             expect(await yieldFarm.getPoolSize(1)).to.equal(amount)
-            await yieldFarm.initEpoch(1)
             await yieldFarm.connect(creatorAcc).harvest(1)
             expect(await bondToken.balanceOf(await creatorAcc.getAddress())).to.equal(0)
             await yieldFarm.connect(creatorAcc).massHarvest()
             expect(await bondToken.balanceOf(await creatorAcc.getAddress())).to.equal(0)
         })
-
-        it('init an uninit epoch', async function () {
-            await moveAtEpoch(5)
-            expect(await yieldFarm.lastInitializedEpoch()).to.equal(0) // no epoch initialized
-            await yieldFarm.initEpoch(1)
-            expect(await yieldFarm.lastInitializedEpoch()).to.equal(1) // no epoch initialized
-        })
-
         it('harvest maximum 100 epochs', async function () {
             await depositUniLP(amount)
             const totalAmount = amount
