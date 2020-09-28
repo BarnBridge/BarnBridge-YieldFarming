@@ -4,14 +4,9 @@ const { ethers } = require('@nomiclabs/buidler')
 describe('YieldFarm', function () {
     let yieldFarm
     let staking
-    let owner, user, communityVault, userAddr, ownerAddr, communityVaultAddr
+    let owner, user, communityVault, userAddr, communityVaultAddr
     let bondToken, usdc, susd, dai
     const distributedAmount = ethers.BigNumber.from(800000).mul(ethers.BigNumber.from(10).pow(18))
-    // let barnBridge = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
-    // let usdc = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
-    // let susd = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
-    // let dai = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
-    // let uniLP = '0x07865c6E87B9F70255377e024ace6630C1Eaa37F'
     let snapshotId
     const epochDuration = 1000
 
@@ -21,8 +16,6 @@ describe('YieldFarm', function () {
         snapshotId = await ethers.provider.send('evm_snapshot')
         const [creator, ownerSigner, userSigner] = await ethers.getSigners()
         owner = ownerSigner
-        ownerAddr = await owner.getAddress()
-
         user = userSigner
         userAddr = await user.getAddress()
 
@@ -91,7 +84,7 @@ describe('YieldFarm', function () {
             expect(await yieldFarm.getPoolSize(1)).to.equal(totalAmount)
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(0) // no epoch initialized
             expect(yieldFarm.harvest(10)).to.be.revertedWith('This epoch is in the future')
-            expect(yieldFarm.harvest(3)).to.be.revertedWith('Epochs needs to be harvested in order')
+            expect(yieldFarm.harvest(3)).to.be.revertedWith('Harvest in order')
 
             await (await yieldFarm.connect(user).harvest(1)).wait()
             expect(await bondToken.balanceOf(userAddr)).to.equal(
@@ -105,6 +98,17 @@ describe('YieldFarm', function () {
             expect(await bondToken.balanceOf(userAddr)).to.equal(totalDistributedAmount)
             expect(await yieldFarm.connect(user).userLastEpochIdHarvested()).to.equal(7)
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(7) // epoch 7 have been initialized
+        })
+
+        it('Have nothing to harvest', async function () {
+            await depositSUsd(amount)
+            await moveAtEpoch(9)
+            expect(await yieldFarm.getPoolSize(1)).to.equal(amount)
+            await yieldFarm.initEpoch(1)
+            await yieldFarm.connect(owner).harvest(1)
+            expect(await bondToken.balanceOf(await owner.getAddress())).to.equal(0)
+            await yieldFarm.connect(owner).massHarvest()
+            expect(await bondToken.balanceOf(await owner.getAddress())).to.equal(0)
         })
 
         it('init an uninit epoch', async function () {
