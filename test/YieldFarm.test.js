@@ -124,6 +124,12 @@ describe('YieldFarm', function () {
             await moveAtEpoch(-2)
             expect(await yieldFarm.getCurrentEpoch()).to.equal(0) // epoch 7 have been initialized
         })
+
+        it('it should return 0 if no deposit in an epoch', async function () {
+            await moveAtEpoch(3)
+            await yieldFarm.connect(owner).harvest(1)
+            expect(await bondToken.balanceOf(await owner.getAddress())).to.equal(0)
+        })
     })
 
     describe('Events', function () {
