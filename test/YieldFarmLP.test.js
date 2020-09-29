@@ -116,6 +116,11 @@ describe('YieldFarm Liquidity Pool', function () {
             await moveAtEpoch(-2)
             expect(await yieldFarm.getCurrentEpoch()).to.equal(0)
         })
+        it('it should return 0 if no deposit in an epoch', async function () {
+            await moveAtEpoch(3)
+            await yieldFarm.connect(user).harvest(1)
+            expect(await bondToken.balanceOf(await user.getAddress())).to.equal(0)
+        })
     })
 
     describe('Events', function () {

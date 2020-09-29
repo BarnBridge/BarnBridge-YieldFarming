@@ -132,6 +132,12 @@ contract YieldFarm {
         // Set user last harvested epoch
         lastEpochIdHarvested[msg.sender] = epochId;
         // compute and return user total reward. For optimization reasons the transfer have been moved to an upper layer (i.e. massHarvest needs to do a single transfer)
+
+        // exit if there is no stake on the epoch
+        if (epochs[epochId] == 0) {
+            return 0;
+        }
+
         return _totalAmountPerEpoch
         .mul(_getUserBalancePerEpoch(msg.sender, epochId))
         .div(epochs[epochId]);
