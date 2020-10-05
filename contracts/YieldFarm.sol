@@ -68,13 +68,13 @@ contract YieldFarm {
             epochId = NR_OF_EPOCHS;
         }
 
-        emit MassHarvest(msg.sender, epochId.sub(lastEpochIdHarvested[msg.sender]), totalDistributedValue);
-
         for (uint128 i = lastEpochIdHarvested[msg.sender] + 1; i <= epochId; i++) {
             // i = epochId
             // compute distributed Value and do one single transfer at the end
             totalDistributedValue += _harvest(i);
         }
+
+        emit MassHarvest(msg.sender, epochId.sub(lastEpochIdHarvested[msg.sender]), totalDistributedValue);
 
         if (totalDistributedValue > 0) {
             _bond.transferFrom(_communityVault, msg.sender, totalDistributedValue);
