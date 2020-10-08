@@ -14,7 +14,7 @@ contract YieldFarm {
 
     // constants
     uint public constant TOTAL_DISTRIBUTED_AMOUNT = 800000;
-    uint public constant NR_OF_EPOCHS = 24;
+    uint public constant NR_OF_EPOCHS = 25;
 
      // state variables
 
@@ -85,7 +85,7 @@ contract YieldFarm {
     function harvest (uint128 epochId) external returns (uint){
         // checks for requested epoch
         require (_getEpochId() > epochId, "This epoch is in the future");
-        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 24");
+        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 25");
         require (lastEpochIdHarvested[msg.sender].add(1) == epochId, "Harvest in order");
         uint userReward = _harvest(epochId);
         if (userReward > 0) {

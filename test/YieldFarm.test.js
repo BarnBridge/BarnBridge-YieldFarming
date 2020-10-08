@@ -70,7 +70,7 @@ describe('YieldFarm', function () {
             expect(await yieldFarm.getCurrentEpoch()).to.equal(3)
 
             await yieldFarm.connect(user).harvest(1)
-            expect(await bondToken.balanceOf(userAddr)).to.equal(distributedAmount.div(24))
+            expect(await bondToken.balanceOf(userAddr)).to.equal(distributedAmount.div(25))
         })
     })
 
@@ -88,13 +88,13 @@ describe('YieldFarm', function () {
 
             await (await yieldFarm.connect(user).harvest(1)).wait()
             expect(await bondToken.balanceOf(userAddr)).to.equal(
-                amount.mul(distributedAmount.div(24)).div(totalAmount),
+                amount.mul(distributedAmount.div(25)).div(totalAmount),
             )
             expect(await yieldFarm.connect(user).userLastEpochIdHarvested()).to.equal(1)
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(1) // epoch 1 have been initialized
 
             await (await yieldFarm.connect(user).massHarvest()).wait()
-            const totalDistributedAmount = amount.mul(distributedAmount.div(24)).div(totalAmount).mul(7)
+            const totalDistributedAmount = amount.mul(distributedAmount.div(25)).div(totalAmount).mul(7)
             expect(await bondToken.balanceOf(userAddr)).to.equal(totalDistributedAmount)
             expect(await yieldFarm.connect(user).userLastEpochIdHarvested()).to.equal(7)
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(7) // epoch 7 have been initialized
@@ -110,14 +110,14 @@ describe('YieldFarm', function () {
             expect(await bondToken.balanceOf(await owner.getAddress())).to.equal(0)
         })
 
-        it('harvest maximum 24 epochs', async function () {
+        it('harvest maximum 25 epochs', async function () {
             await depositUsdc(amountUSDC)
             const totalAmount = amount
             await moveAtEpoch(30)
 
             expect(await yieldFarm.getPoolSize(1)).to.equal(totalAmount)
             await (await yieldFarm.connect(user).massHarvest()).wait()
-            expect(await yieldFarm.lastInitializedEpoch()).to.equal(24) // epoch 7 have been initialized
+            expect(await yieldFarm.lastInitializedEpoch()).to.equal(25) // epoch 7 have been initialized
         })
 
         it('gives epochid = 0 for previous epochs', async function () {
