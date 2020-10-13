@@ -365,7 +365,7 @@ contract Staking is ReentrancyGuard {
     /*
      * Checks if an epoch is initialized, meaning we have a pool size set for it
      */
-    function epochIsInitialized(address token, uint128 epochId) internal view returns (bool) {
+    function epochIsInitialized(address token, uint128 epochId) public view returns (bool) {
         return poolSize[token][epochId].set;
     }
 
