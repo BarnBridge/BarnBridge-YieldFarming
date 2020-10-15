@@ -77,8 +77,8 @@ describe('YieldFarm Liquidity Pool', function () {
             expect(await yieldFarm.getPoolSize(1)).to.equal(amount)
 
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(0) // no epoch initialized
-            expect(yieldFarm.harvest(10)).to.be.revertedWith('This epoch is in the future')
-            expect(yieldFarm.harvest(3)).to.be.revertedWith('Harvest in order')
+            await expect(yieldFarm.harvest(10)).to.be.revertedWith('This epoch is in the future')
+            await expect(yieldFarm.harvest(3)).to.be.revertedWith('Harvest in order')
             await (await yieldFarm.connect(user).harvest(1)).wait()
 
             expect(await bondToken.balanceOf(userAddr)).to.equal(
