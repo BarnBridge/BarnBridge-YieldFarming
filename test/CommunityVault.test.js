@@ -44,7 +44,7 @@ describe('CommunityVault', function () {
         })
 
         it('should fail if no owner tries to set allowance', async function () {
-            expect(communityVault.connect(user).setAllowance(userAddr, distributedAmount)).to.be.revertedWith(
+            await expect(communityVault.connect(user).setAllowance(userAddr, distributedAmount)).to.be.revertedWith(
                 'Ownable: caller is not the owner',
             )
         })
