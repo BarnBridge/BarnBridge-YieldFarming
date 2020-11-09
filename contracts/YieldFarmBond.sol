@@ -132,19 +132,17 @@ contract YieldFarmBond {
         .div(epochs[epochId]);
     }
 
+    // retrieve _poolTokenAddress token balance
     function _getPoolSize(uint128 epochId) internal view returns (uint) {
-        // retrieve unilp token balance
         return _staking.getEpochPoolSize(_poolTokenAddress, _stakingEpochId(epochId));
     }
 
-
-
+    // retrieve _poolTokenAddress token balance per user per epoch
     function _getUserBalancePerEpoch(address userAddress, uint128 epochId) internal view returns (uint){
-        // retrieve unilp token balance per user per epoch
         return _staking.getEpochUserBalance(userAddress, _poolTokenAddress, _stakingEpochId(epochId));
     }
 
-    // compute epoch id from blocktimestamp and epochstart date
+    // compute epoch id from block.timestamp and epochStart date
     function _getEpochId() internal view returns (uint128 epochId) {
         if (block.timestamp < epochStart) {
             return 0;
@@ -152,7 +150,7 @@ contract YieldFarmBond {
         epochId = uint128(block.timestamp.sub(epochStart).div(epochDuration).add(1));
     }
 
-    // get the staking epoch which is 1 epoch more
+    // get the staking epoch
     function _stakingEpochId(uint128 epochId) pure internal returns (uint128) {
         return epochId + EPOCHS_DELAYED_FROM_STAKING_CONTRACT;
     }
