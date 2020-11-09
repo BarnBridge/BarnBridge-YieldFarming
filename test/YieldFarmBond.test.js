@@ -6,7 +6,7 @@ describe('YieldFarm Bond Pool', function () {
     let staking
     let user, communityVault, userAddr, communityVaultAddr
     let bondToken, creatorAcc
-    const distributedAmount = ethers.BigNumber.from(120000).mul(ethers.BigNumber.from(10).pow(18))
+    const distributedAmount = ethers.BigNumber.from(60000).mul(ethers.BigNumber.from(10).pow(18))
     let snapshotId
     const epochDuration = 1000
     const NR_OF_EPOCHS = 12
@@ -100,7 +100,7 @@ describe('YieldFarm Bond Pool', function () {
             await yieldFarm.connect(creatorAcc).massHarvest()
             expect(await bondToken.balanceOf(await creatorAcc.getAddress())).to.equal(0)
         })
-        it('harvest maximum 100 epochs', async function () {
+        it('harvest maximum 12 epochs', async function () {
             await depositBond(amount)
             const totalAmount = amount
             await moveAtEpoch(300)

@@ -12,7 +12,7 @@ contract YieldFarmBond {
     using SafeMath for uint128;
 
     // constants
-    uint public constant TOTAL_DISTRIBUTED_AMOUNT = 120000;
+    uint public constant TOTAL_DISTRIBUTED_AMOUNT = 60000;
     uint public constant NR_OF_EPOCHS = 12;
     uint128 public constant EPOCHS_DELAYED_FROM_STAKING_CONTRACT = 4;
 
@@ -75,7 +75,7 @@ contract YieldFarmBond {
     function harvest (uint128 epochId) external returns (uint){
         // checks for requested epoch
         require (_getEpochId() > epochId, "This epoch is in the future");
-        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 100");
+        require(epochId <= NR_OF_EPOCHS, "Maximum number of epochs is 12");
         require (lastEpochIdHarvested[msg.sender].add(1) == epochId, "Harvest in order");
         uint userReward = _harvest(epochId);
         if (userReward > 0) {
