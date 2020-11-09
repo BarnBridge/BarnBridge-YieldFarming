@@ -6,6 +6,7 @@ async function main () {
         '0x9ac3462b9A259bAEF295A8C90b2984738fd7AadD',
         '0x95fD7265D5a4d8705d62A5840c5a0d69e019DCe4',
         '0x9f11cd3f75920f3ab86ecb12f4f56398c2f854b2',
+        '0x64496f51779e400C5E955228E56fA41563Fb4dd8',
     ]
 
     const _staking = '0x470D6Cd82918B90AF0d961Eb2620f8a2efcE5ac7'
@@ -23,11 +24,15 @@ async function main () {
                 break
             }
         }
+
+        if (initializedEpochs[token] === undefined) {
+            initializedEpochs[token] = -1
+        }
     }
 
     console.log(`Current epoch is: ${currentEpoch}`)
     for (const token of tokens) {
-        for (let i = initializedEpochs[token]+1; i < currentEpoch; i++) {
+        for (let i = initializedEpochs[token] + 1; i < currentEpoch; i++) {
             console.log(`${token}: trying to init epoch ${i}`)
 
             try {
@@ -36,10 +41,16 @@ async function main () {
             } catch (e) {
                 console.log(`${token}: trying to init epoch ${i} -- error`)
             }
+
+            await sleep(1000)
         }
     }
 
     console.log('Done')
+}
+
+function sleep (ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 main()
