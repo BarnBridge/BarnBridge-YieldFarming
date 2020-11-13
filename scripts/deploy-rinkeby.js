@@ -11,7 +11,7 @@ async function main () {
     // We get the contract to deploy
     const Staking = await ethers.getContractFactory('Staking')
     // start at 2020-10-19 00:00:00; epoch duration 7 days
-    const staking = await Staking.deploy(1603065600, 604800)
+    const staking = await Staking.deploy(1605265200, 3600)
     await staking.deployed()
 
     console.log('Staking contract deployed to:', staking.address)
@@ -23,6 +23,7 @@ async function main () {
 
     const YieldFarm = await ethers.getContractFactory('YieldFarm')
     const YieldFarmLP = await ethers.getContractFactory('YieldFarmLP')
+    const YieldFarmBond = await ethers.getContractFactory('YieldFarmBond')
 
     const yf = await YieldFarm.deploy(_bond, _usdc, _susd, _dai, staking.address, cv.address)
     await yf.deployed()
@@ -32,13 +33,18 @@ async function main () {
     await yflp.deployed()
     console.log('YF_LP deployed to:', yflp.address)
 
+    const yfbond = await YieldFarmBond.deploy(_bond, staking.address, cv.address)
+    await yfbond.deployed()
+    console.log('YF_BOND deployed to:', yfbond.address)
+
     // initialize stuff
     const tenPow18 = BN.from(10).pow(18)
     const bond = await ethers.getContractAt('ERC20', _bond)
-    await bond.transfer(cv.address, BN.from(2800000).mul(tenPow18))
+    await bond.transfer(cv.address, BN.from(2860000).mul(tenPow18))
 
     await cv.setAllowance(yf.address, BN.from(800000).mul(tenPow18))
     await cv.setAllowance(yflp.address, BN.from(2000000).mul(tenPow18))
+    await cv.setAllowance(yfbond.address, BN.from(60000).mul(tenPow18))
 }
 
 main()
