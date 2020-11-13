@@ -11,7 +11,7 @@ async function main () {
     // We get the contract to deploy
     const Staking = await ethers.getContractFactory('Staking')
     // start at 2020-10-19 00:00:00; epoch duration 7 days
-    const staking = await Staking.deploy(1605265200, 3600)
+    const staking = await Staking.deploy(1603065600, 604800)
     await staking.deployed()
 
     console.log('Staking contract deployed to:', staking.address)
