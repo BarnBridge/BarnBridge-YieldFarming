@@ -38,7 +38,7 @@ module.exports = {
 
     abiExporter: {
         path: './abi',
-        only: ['Staking', 'YieldFarm', 'YieldFarmLP', 'CommunityVault'],
+        only: ['Staking', 'YieldFarm', 'YieldFarmLP', 'YieldFarmBond', 'CommunityVault'],
         clear: true,
     },
 }
