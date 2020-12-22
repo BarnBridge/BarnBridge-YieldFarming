@@ -13,9 +13,12 @@ async function main () {
     const s = await ethers.getContractAt('Staking', _staking)
 
     const currentEpoch = parseInt(await s.getCurrentEpoch())
+    console.log(`Current epoch is: ${currentEpoch}`)
+
     const initializedEpochs = {}
 
     for (const token of tokens) {
+        console.log(`Getting data for token ${token}`)
         for (let i = currentEpoch + 1; i >= 0; i--) {
             const ok = await s.epochIsInitialized(token, i)
             if (ok) {
@@ -30,13 +33,12 @@ async function main () {
         }
     }
 
-    console.log(`Current epoch is: ${currentEpoch}`)
     for (const token of tokens) {
         for (let i = initializedEpochs[token] + 1; i < currentEpoch; i++) {
             console.log(`${token}: trying to init epoch ${i}`)
 
             try {
-                await s.manualEpochInit([token], i)
+                await s.manualEpochInit([token], i, {gasLimit: 100000})
                 console.log(`${token}: trying to init epoch ${i} -- done`)
             } catch (e) {
                 console.log(`${token}: trying to init epoch ${i} -- error`)
