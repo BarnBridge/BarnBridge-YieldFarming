@@ -39,5 +39,8 @@
     "@nomiclabs/buidler-etherscan": "^2.0.1",
     "@openzeppelin/contracts-ethereum-package": "^3.0.0",
     "bignumber.js": "^9.0.0"
-  }
+  },
+    "engines": {
+        "yarn": "NO LONGER USED - Please use npm"
+    }
 }
