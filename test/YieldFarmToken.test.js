@@ -5,7 +5,7 @@ describe('YieldFarm Token Pool', function () {
     let yieldFarm
     let staking
     let user, communityVault, userAddr, communityVaultAddr
-    let genericToken, creatorAcc
+    let poolToken, rewardToken, creatorAcc
     const distributedAmount = ethers.BigNumber.from(60000).mul(ethers.BigNumber.from(10).pow(18))
     let snapshotId
     const epochDuration = 1000
@@ -28,19 +28,22 @@ describe('YieldFarm Token Pool', function () {
         const ERC20Mock = await ethers.getContractFactory('ERC20Mock')
         const CommunityVault = await ethers.getContractFactory('CommunityVault')
 
-        genericToken = await ERC20Mock.deploy()
-        communityVault = await CommunityVault.deploy(genericToken.address)
+        poolToken = await ERC20Mock.deploy()
+        rewardToken = await ERC20Mock.deploy()
+
+        communityVault = await CommunityVault.deploy(rewardToken.address)
         communityVaultAddr = communityVault.address
         const YieldFarm = await ethers.getContractFactory('YieldFarmToken')
         yieldFarm = await YieldFarm.deploy(
-            genericToken.address,
+            poolToken.address,
+            rewardToken.address,
             staking.address,
             communityVaultAddr,
             distributedAmount,
             numberOfEpochs,
             epochsDelayedFromStakingContract,
         )
-        await genericToken.mint(communityVaultAddr, distributedAmount)
+        await rewardToken.mint(communityVaultAddr, distributedAmount)
         await communityVault.connect(creator).setAllowance(yieldFarm.address, distributedAmount)
     })
 
@@ -52,7 +55,7 @@ describe('YieldFarm Token Pool', function () {
         it('should be deployed', async function () {
             expect(staking.address).to.not.equal(0)
             expect(yieldFarm.address).to.not.equal(0)
-            expect(genericToken.address).to.not.equal(0)
+            expect(rewardToken.address).to.not.equal(0)
         })
 
         it('Get epoch PoolSize and distribute tokens', async function () {
@@ -62,11 +65,11 @@ describe('YieldFarm Token Pool', function () {
 
             expect(await yieldFarm.getPoolSize(1)).to.equal(totalAmount)
             expect(await yieldFarm.getEpochStake(userAddr, 1)).to.equal(totalAmount)
-            expect(await genericToken.allowance(communityVaultAddr, yieldFarm.address)).to.equal(distributedAmount)
+            expect(await rewardToken.allowance(communityVaultAddr, yieldFarm.address)).to.equal(distributedAmount)
             expect(await yieldFarm.getCurrentEpoch()).to.equal(2) // epoch on yield is staking - numberOfDelayedEpochs
 
             await yieldFarm.connect(user).harvest(1)
-            expect(await genericToken.balanceOf(userAddr)).to.equal(distributedAmount.div(numberOfEpochs))
+            expect(await rewardToken.balanceOf(userAddr)).to.equal(distributedAmount.div(numberOfEpochs))
         })
     })
 
@@ -83,7 +86,7 @@ describe('YieldFarm Token Pool', function () {
             await expect(yieldFarm.harvest(3)).to.be.revertedWith('Harvest in order')
             await (await yieldFarm.connect(user).harvest(1)).wait()
 
-            expect(await genericToken.balanceOf(userAddr)).to.equal(
+            expect(await rewardToken.balanceOf(userAddr)).to.equal(
                 amount.mul(distributedAmount.div(numberOfEpochs)).div(totalAmount),
             )
             expect(await yieldFarm.connect(user).userLastEpochIdHarvested()).to.equal(1)
@@ -91,7 +94,7 @@ describe('YieldFarm Token Pool', function () {
 
             await (await yieldFarm.connect(user).massHarvest()).wait()
             const totalDistributedAmount = amount.mul(distributedAmount.div(numberOfEpochs)).div(totalAmount).mul(7)
-            expect(await genericToken.balanceOf(userAddr)).to.equal(totalDistributedAmount)
+            expect(await rewardToken.balanceOf(userAddr)).to.equal(totalDistributedAmount)
             expect(await yieldFarm.connect(user).userLastEpochIdHarvested()).to.equal(7)
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(7) // epoch 7 have been initialized
         })
@@ -100,9 +103,9 @@ describe('YieldFarm Token Pool', function () {
             await moveAtEpoch(10)
             expect(await yieldFarm.getPoolSize(1)).to.equal(amount)
             await yieldFarm.connect(creatorAcc).harvest(1)
-            expect(await genericToken.balanceOf(await creatorAcc.getAddress())).to.equal(0)
+            expect(await rewardToken.balanceOf(await creatorAcc.getAddress())).to.equal(0)
             await yieldFarm.connect(creatorAcc).massHarvest()
-            expect(await genericToken.balanceOf(await creatorAcc.getAddress())).to.equal(0)
+            expect(await rewardToken.balanceOf(await creatorAcc.getAddress())).to.equal(0)
         })
         it('harvest maximum 12 epochs', async function () {
             await depositToken(amount)
@@ -121,7 +124,7 @@ describe('YieldFarm Token Pool', function () {
         it('it should return 0 if no deposit in an epoch', async function () {
             await moveAtEpoch(6)
             await yieldFarm.connect(user).harvest(1)
-            expect(await genericToken.balanceOf(await user.getAddress())).to.equal(0)
+            expect(await rewardToken.balanceOf(await user.getAddress())).to.equal(0)
         })
         it('it should be epoch1 when staking epoch is 5', async function () {
             await moveAtEpoch(5)
@@ -166,8 +169,8 @@ describe('YieldFarm Token Pool', function () {
 
     async function depositToken (x, u = user) {
         const ua = await u.getAddress()
-        await genericToken.mint(ua, x)
-        await genericToken.connect(u).approve(staking.address, x)
-        return await staking.connect(u).deposit(genericToken.address, x)
+        await poolToken.mint(ua, x)
+        await poolToken.connect(u).approve(staking.address, x)
+        return await staking.connect(u).deposit(poolToken.address, x)
     }
 })

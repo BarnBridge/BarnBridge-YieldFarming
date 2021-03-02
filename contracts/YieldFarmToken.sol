@@ -17,7 +17,7 @@ contract YieldFarmToken {
     address private _communityVault;
 
     // contracts
-    IERC20 private _token;
+    IERC20 private _rewardToken;
     IStaking private _staking;
 
     uint public totalDistributedAmount;
@@ -35,9 +35,9 @@ contract YieldFarmToken {
     event Harvest(address indexed user, uint128 indexed epochId, uint256 amount);
 
     // constructor
-    constructor(address tokenAddress, address stakeContract, address communityVault, uint distributedAmount, uint noOfEpochs, uint128 epochsDelayed) public {
-        _token = IERC20(tokenAddress);
-        _poolTokenAddress = tokenAddress;
+    constructor(address poolToken, address rewardToken, address stakeContract, address communityVault, uint distributedAmount, uint noOfEpochs, uint128 epochsDelayed) public {
+        _rewardToken = IERC20(rewardToken);
+        _poolTokenAddress = poolToken;
         _staking = IStaking(stakeContract);
         _communityVault = communityVault;
         totalDistributedAmount = distributedAmount;
@@ -68,7 +68,7 @@ contract YieldFarmToken {
         emit MassHarvest(msg.sender, epochId - lastEpochIdHarvested[msg.sender], totalDistributedValue);
 
         if (totalDistributedValue > 0) {
-            _token.transferFrom(_communityVault, msg.sender, totalDistributedValue);
+            _rewardToken.transferFrom(_communityVault, msg.sender, totalDistributedValue);
         }
 
         return totalDistributedValue;
@@ -80,7 +80,7 @@ contract YieldFarmToken {
         require (lastEpochIdHarvested[msg.sender].add(1) == epochId, "Harvest in order");
         uint userReward = _harvest(epochId);
         if (userReward > 0) {
-            _token.transferFrom(_communityVault, msg.sender, userReward);
+            _rewardToken.transferFrom(_communityVault, msg.sender, userReward);
         }
         emit Harvest(msg.sender, epochId, userReward);
         return userReward;
