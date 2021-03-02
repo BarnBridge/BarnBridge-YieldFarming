@@ -9,7 +9,7 @@ describe('YieldFarm Token Pool', function () {
     const distributedAmount = ethers.BigNumber.from(60000).mul(ethers.BigNumber.from(10).pow(18))
     let snapshotId
     const epochDuration = 1000
-    const NR_OF_EPOCHS = 12
+    const numberOfEpochs = 12
     const epochsDelayedFromStakingContract = 4
 
     const amount = ethers.BigNumber.from(100).mul(ethers.BigNumber.from(10).pow(18))
@@ -37,7 +37,7 @@ describe('YieldFarm Token Pool', function () {
             staking.address,
             communityVaultAddr,
             distributedAmount,
-            NR_OF_EPOCHS,
+            numberOfEpochs,
             epochsDelayedFromStakingContract,
         )
         await genericToken.mint(communityVaultAddr, distributedAmount)
@@ -63,10 +63,10 @@ describe('YieldFarm Token Pool', function () {
             expect(await yieldFarm.getPoolSize(1)).to.equal(totalAmount)
             expect(await yieldFarm.getEpochStake(userAddr, 1)).to.equal(totalAmount)
             expect(await genericToken.allowance(communityVaultAddr, yieldFarm.address)).to.equal(distributedAmount)
-            expect(await yieldFarm.getCurrentEpoch()).to.equal(2) // epoch on yield is staking - 1
+            expect(await yieldFarm.getCurrentEpoch()).to.equal(2) // epoch on yield is staking - numberOfDelayedEpochs
 
             await yieldFarm.connect(user).harvest(1)
-            expect(await genericToken.balanceOf(userAddr)).to.equal(distributedAmount.div(NR_OF_EPOCHS))
+            expect(await genericToken.balanceOf(userAddr)).to.equal(distributedAmount.div(numberOfEpochs))
         })
     })
 
@@ -84,13 +84,13 @@ describe('YieldFarm Token Pool', function () {
             await (await yieldFarm.connect(user).harvest(1)).wait()
 
             expect(await genericToken.balanceOf(userAddr)).to.equal(
-                amount.mul(distributedAmount.div(NR_OF_EPOCHS)).div(totalAmount),
+                amount.mul(distributedAmount.div(numberOfEpochs)).div(totalAmount),
             )
             expect(await yieldFarm.connect(user).userLastEpochIdHarvested()).to.equal(1)
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(1) // epoch 1 have been initialized
 
             await (await yieldFarm.connect(user).massHarvest()).wait()
-            const totalDistributedAmount = amount.mul(distributedAmount.div(NR_OF_EPOCHS)).div(totalAmount).mul(7)
+            const totalDistributedAmount = amount.mul(distributedAmount.div(numberOfEpochs)).div(totalAmount).mul(7)
             expect(await genericToken.balanceOf(userAddr)).to.equal(totalDistributedAmount)
             expect(await yieldFarm.connect(user).userLastEpochIdHarvested()).to.equal(7)
             expect(await yieldFarm.lastInitializedEpoch()).to.equal(7) // epoch 7 have been initialized
@@ -111,7 +111,7 @@ describe('YieldFarm Token Pool', function () {
 
             expect(await yieldFarm.getPoolSize(1)).to.equal(totalAmount)
             await (await yieldFarm.connect(user).massHarvest()).wait()
-            expect(await yieldFarm.lastInitializedEpoch()).to.equal(NR_OF_EPOCHS)
+            expect(await yieldFarm.lastInitializedEpoch()).to.equal(numberOfEpochs)
         })
 
         it('gives epochid = 0 for previous epochs', async function () {

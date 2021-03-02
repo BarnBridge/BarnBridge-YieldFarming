@@ -20,14 +20,13 @@ contract YieldFarmToken {
     IERC20 private _token;
     IStaking private _staking;
 
-    uint[] private epochs = new uint[](numberOfEpochs + 1);
-    uint private _totalAmountPerEpoch;
-    uint128 public lastInitializedEpoch;
-    mapping(address => uint128) private lastEpochIdHarvested;
-    // constants
     uint public totalDistributedAmount;
     uint public numberOfEpochs;
     uint128 public  epochsDelayedFromStakingContract;
+    uint[] private epochs;
+    uint private _totalAmountPerEpoch;
+    uint128 public lastInitializedEpoch;
+    mapping(address => uint128) private lastEpochIdHarvested;
     uint public epochDuration; // init from staking contract
     uint public epochStart; // init from staking contract
 
@@ -43,10 +42,11 @@ contract YieldFarmToken {
         _communityVault = communityVault;
         totalDistributedAmount = distributedAmount;
         numberOfEpochs = noOfEpochs;
+        epochs = new uint[](numberOfEpochs + 1);
         epochsDelayedFromStakingContract = epochsDelayed;
         epochDuration = _staking.epochDuration();
         epochStart = _staking.epoch1Start() + epochDuration.mul(epochsDelayedFromStakingContract);
-        _totalAmountPerEpoch = totalDistributedAmount.mul(10**18).div(numberOfEpochs);
+        _totalAmountPerEpoch = totalDistributedAmount.div(numberOfEpochs);
     }
 
     // public methods
@@ -152,7 +152,7 @@ contract YieldFarmToken {
     }
 
     // get the staking epoch
-    function _stakingEpochId(uint128 epochId) view internal returns (uint128) {
+    function _stakingEpochId(uint128 epochId) internal view returns (uint128) {
         return epochId + epochsDelayedFromStakingContract;
     }
 }
