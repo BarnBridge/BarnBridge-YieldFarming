@@ -24,7 +24,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
       - run: cp ./config.sample.ts ./config.ts
-      - run: npm compile-and-test
+      - run: npm run compile-and-test
 
 #   coverage:
 #     name: Coverage
