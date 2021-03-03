@@ -837,19 +837,19 @@ describe("Staking", function () {
         return epoch1Start + (epoch - 1) * epochDuration;
     }
 
-    async function deposit(u: Signer, x: BigNumberish) {
+    async function deposit(u: Signer, x: BigNumber) {
         return await staking.connect(u).deposit(erc20Mock.address, x);
     }
 
-    async function withdraw(u: Signer, x: BigNumberish) {
+    async function withdraw(u: Signer, x: BigNumber) {
         return await staking.connect(u).withdraw(erc20Mock.address, x);
     }
 
-    async function getEpochPoolSize(epochId: BigNumberish) {
+    async function getEpochPoolSize(epochId: number) {
         return (await staking.getEpochPoolSize(erc20Mock.address, epochId)).toString();
     }
 
-    async function getEpochUserBalance(addr: string, epochId: BigNumberish) {
+    async function getEpochUserBalance(addr: string, epochId: number) {
         return (await staking.getEpochUserBalance(addr, erc20Mock.address, epochId)).toString();
     }
 

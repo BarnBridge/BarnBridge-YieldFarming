@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
-import { BigNumber, BigNumberish, Signer } from "ethers";
-import { moveAtEpoch, setNextBlockTimestamp, tenPow18, getCurrentUnix } from "./helpers/helpers";
+import { BigNumber, Signer } from "ethers";
+import { moveAtEpoch, tenPow18 } from "./helpers/helpers";
 import { deployContract } from "./helpers/deploy";
 import { expect } from "chai";
 import { CommunityVault, ERC20Mock, ERC20Mock6Decimals, Staking, YieldFarm } from "../typechain";
@@ -156,22 +156,6 @@ describe("YieldFarm", function () {
                 .to.emit(yieldFarm, "MassHarvest");
         });
     });
-    //
-    // function getCurrentUnix() {
-    //     return Math.floor(Date.now() / 1000);
-    // }
-
-    // async function setNextBlockTimestamp(timestamp:number) {
-    //     const block = await ethers.provider.send("eth_getBlockByNumber", ["latest", false]);
-    //     const currentTs = block.timestamp;
-    //     const diff = timestamp - currentTs;
-    //     await ethers.provider.send("evm_increaseTime", [diff]);
-    // }
-    //
-    // async function moveAtEpoch(epochStart, epochDuration, epoch:number) {
-    //     await setNextBlockTimestamp(getCurrentUnix() + epochDuration * epoch);
-    //     await ethers.provider.send("evm_mine",[]);
-    // }
 
     async function depositUsdc(x: BigNumber, u = user) {
         const ua = await u.getAddress();
