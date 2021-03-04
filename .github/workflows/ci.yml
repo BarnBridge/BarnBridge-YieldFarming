@@ -17,33 +17,33 @@ jobs:
       matrix:
         node-version: [12.x]
     steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm ci
-    - run: cp ./config.sample.js ./config.js
-    - run: npm test
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: cp ./config.sample.ts ./config.ts
+      - run: npm run compile-and-test
 
-  coverage:
-    name: Coverage
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [12.x]
-    steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm ci
-    - run: cp ./config.sample.js ./config.js
-    - run: npm run coverage
-    - uses: actions/upload-artifact@v2
-      with:
-        name: Coverage ${{ matrix.node-version }}
-        path: |
-          coverage/
+#   coverage:
+#     name: Coverage
+#     needs: build
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         node-version: [12.x]
+#     steps:
+#     - uses: actions/checkout@v2
+#     - name: Use Node.js ${{ matrix.node-version }}
+#       uses: actions/setup-node@v1
+#       with:
+#         node-version: ${{ matrix.node-version }}
+#     - run: npm ci
+#     - run: cp ./config.sample.ts ./config.ts
+#     - run: npm run coverage
+#     - uses: actions/upload-artifact@v2
+#       with:
+#         name: Coverage ${{ matrix.node-version }}
+#         path: |
+#           coverage/
