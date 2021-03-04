@@ -8,6 +8,7 @@
         "test": "hardhat test",
         "compile-and-test": "npm run compile && hardhat test",
         "coverage": "hardhat coverage --temp artifacts",
+        "compile-and-coverage": "npm run compile && hardhat coverage --temp artifacts",
         "lint": "npm run lint:ts && npm run lint:sol",
         "lint:fix": "npm run lint:ts:fix",
         "lint:ts": "eslint . --ext .ts",

@@ -112,6 +112,19 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "c__0x957529c5",
+        "type": "bytes32"
+      }
+    ],
+    "name": "c_0x957529c5",
+    "outputs": [],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "epochDuration",
     "outputs": [
