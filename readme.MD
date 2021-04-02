@@ -1,5 +1,7 @@
 ### [Smart Contract External Audit](https://github.com/BarnBridge/BarnBridge-YieldFarming/blob/master/BarnBridge-Yield-Farming-and-Incentivization-AUDIT.pdf)
 
+## Smart Contract Architecture
+![yf sc architecture](https://gblobscdn.gitbook.com/assets%2F-MIu3rMElIO-jG68zdaV%2F-MXHutr14sDo0hYi6gg3%2F-MXHwLeh-A73UmkmjGJX%2Ftokens%20staking.png?alt=media&token=20ef1aba-783c-4f86-93a6-f74cf3cca1da)
 
 ## Contracts
 
