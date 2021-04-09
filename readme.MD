@@ -1,3 +1,26 @@
+# Barnbridge YieldFarm contracts
+
+## Running tests
+**Note:** The result of tests is readily available [here](./test-results.md).
+
+### 1. Clone this repo
+```shell
+git clone git@github.com:BarnBridge/BarnBridge-YieldFarming.git
+```
+
+### 2. Install dependencies
+```shell
+npm install
+```
+
+### 3. Run tests
+```shell
+npm test
+
+# or if you want to run with coverage
+npm run coverage
+```
+
 ### [Smart Contract External Audit](https://github.com/BarnBridge/BarnBridge-YieldFarming/blob/master/BarnBridge-Yield-Farming-and-Incentivization-AUDIT.pdf)
 
 ## Smart Contract Architecture
@@ -12,5 +35,5 @@
  [Yield Farm](https://etherscan.io/address/0xB3F7abF8FA1Df0fF61C5AC38d35e20490419f4bb#code)
 
  [Yield Farm LP](https://etherscan.io/address/0xC25c37c387C5C909a94055F4f16184ca325D3a76#code)
- 
+
  [Yield Farm BOND](https://etherscan.io/address/0x3FdFb07472ea4771E1aD66FD3b87b265Cd4ec112#code)
