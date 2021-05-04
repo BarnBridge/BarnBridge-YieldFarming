@@ -49,7 +49,6 @@
         "typechain": "^4.0.2",
         "typescript": "^4.2.2"
     },
-    "dependencies": {},
     "engines": {
         "yarn": "NO LONGER USED - Please use npm"
     }
