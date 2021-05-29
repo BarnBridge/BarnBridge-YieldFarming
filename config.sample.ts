@@ -7,12 +7,12 @@ export const networks: NetworksUserConfig = {
         url: "http://localhost:8555"
     },
 
-    // Rinkeby
-    rinkeby: {
-        url: "https://rinkeby.infura.io/v3/YOUR-INFURA-API-KEY",
-        chainId: 4,
+    // Kovan
+    kovan: {
+        url: "https://kovan.infura.io/v3/YOUR-INFURA-API-KEY",
+        chainId: 42,
         accounts: {
-            mnemonic: "YOUR MNEMONIC HERE",
+            mnemonic: "your kovan mnemonic, get kovan eth for gas first",
             path: "m/44'/60'/0'/0",
             initialIndex: 0,
             count: 10
