@@ -104,7 +104,7 @@ Check out more detailed smart contract Slither graphs with all the dependencies:
 ## Running Code Coverage Tests
     npm run coverage
 
-    
+## Deplying to Kovan    
 ### Use the code in the scripts folder to deploy on Kovan
 
     npx hardhat run --network kovan scripts/deploy-kovan.js
