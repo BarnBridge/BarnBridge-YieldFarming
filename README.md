@@ -78,6 +78,9 @@ Update line 12 of the env-manualEpochInit.js file with the staking address given
  [Yield Farm LP](https://etherscan.io/address/0xC25c37c387C5C909a94055F4f16184ca325D3a76#code)
 
  [Yield Farm BOND](https://etherscan.io/address/0x3FdFb07472ea4771E1aD66FD3b87b265Cd4ec112#code)
+ 
+## Audits
+* [Hacken](https://github.com/BarnBridge/BarnBridge-PM/blob/master/audits/BarnBridge%20Yield%20Farming%20audit%20by%20Hacken.pdf)
 
 ## Discussion
 For any concerns with the platform, open an issue on GitHub or visit us on [Discord](https://discord.gg/9TTQNUzg) to discuss.
