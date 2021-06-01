@@ -30,66 +30,21 @@ Check out more detailed smart contract Slither graphs with all the dependencies:
 ### Create config.ts using the sample template config.sample.ts
     cp config.sample.ts config.ts
 
-## Updating the config.ts file
+## Updating the .env file
 ### Create an API key with Infura to deploy to Ethereum Public Testnet. In this guide, we are using Kovan.
 
 1. Navigate to [Infura.io](https://infura.io/) and create an account
 2. Log in and select "Get started and create your first project to access the Ethereum network"
 3. Create a project and name it appropriately
-4. Then, switch the endpoint to Rinkeby, copy the https URL and paste it into the section named `rinkeby` 
-5. Finally, insert the mnemonic phrase for your testing wallet. You can use a MetaMask instance, and switch the network to Rinkeby on the upper right. DO NOT USE YOUR PERSONAL METAMASK SEED PHRASE; USE A DIFFERENT BROWSER WITH AN INDEPENDENT METAMASK INSTALLATION
+4. Switch the Endpoint to Kovan and copy the last part of the HTTPS URL into the INFURA section section in the .env file
+5. Finally, insert the mnemonic phrase for your testing wallet into the MNEMONIC section in the .env file. You can use a MetaMask instance, and switch the network to Rinkeby on the upper right. DO NOT USE YOUR PERSONAL METAMASK SEED PHRASE; USE A DIFFERENT BROWSER WITH AN INDEPENDENT METAMASK INSTALLATION
 6. You'll need some Kovan-ETH (it is free) in order to pay the gas costs of deploying the contracts on the TestNet; you can use your GitHub account to authenticate to the [KovanFaucet](https://faucet.kovan.network/) and receive 2 Kovan-ETH for free every 24 hours
 
 ### Create an API key with Etherscan 
 1. Navigate to [EtherScan](https://etherscan.io/) and create an account 
 2. Log in and navigate to [MyAPIKey](https://etherscan.io/myapikey) 
-3. Use the Add button to create an API key, and paste it into the indicated section towards the bottom of the `config.ts` file
+3. Use the Add button to create an API key, and paste it into the ETHERSCAN section of the .env file.
 
-### Verify contents of config.ts; it should look like this:
-
-```js
-	import { NetworksUserConfig } from "hardhat/types";
-	import { EtherscanConfig } from "@nomiclabs/hardhat-etherscan/dist/src/types";
-
-	export const networks: NetworksUserConfig = {
-	    // Needed for `solidity-coverage`
-	    coverage: {
-		url: "http://localhost:8555"
-	    },
-
-	    // Kovan
-	    kovan: {
-		url: "https://kovan.infura.io/v3/INFURA-API-KEY",
-		chainId: 42,
-		accounts: {
-		    mnemonic: "YourKovanTestWalletMnemonicPhrase",
-		    path: "m/44'/60'/0'/0",
-		    initialIndex: 0,
-		    count: 10
-		},
-		gas: "auto",
-		gasPrice: 1000000000, // 1 gwei
-		gasMultiplier: 1.5
-	    },
-
-	    // Mainnet
-	    mainnet: {
-		url: "https://mainnet.infura.io/v3/YOUR-INFURA-KEY",
-		chainId: 1,
-		accounts: ["0xaaaa"],
-		gas: "auto",
-		gasPrice: 50000000000,
-		gasMultiplier: 1.5
-	    }
-	};
-
-	// Use to verify contracts on Etherscan
-	// https://buidler.dev/plugins/nomiclabs-buidler-etherscan.html
-	export const etherscan: EtherscanConfig = {
-	    apiKey: "YourEtherscanAPIKey"
-	};
-
-```
 ## Installing
 
 ### Install NodeJS dependencies which include HardHat
@@ -107,20 +62,12 @@ Check out more detailed smart contract Slither graphs with all the dependencies:
 ## Deplying to Kovan    
 ### Use the code in the scripts folder to deploy on Kovan
 
-    npx hardhat run --network kovan scripts/deploy-kovan.js
+    npm run deploy-from-env
     
-### Update deploy-kovan-yfbond.js and execute
-The output from the previous step gives four new contract addresses, two of which are "Staking" and "CommunityVault".
-Insert these addresses into lines 6 and 7 respectively, of the deploy-kovan-yfbond.js file.
-Execute deploy-kovan-yfbond.js. NOTE: The contract call will be reverted unless you have some Kovan-BOND for testing purposes in your wallet, but you can still get a feel for how the contracts work. If you would like some Kovan-BOND, please contact the Integrations team.
+### OPTIONAL: Manually initialize Epoch passage
+Update line 12 of the env-manualEpochInit.js file with the staking address given by your deploy-kovan.js execution, and run it
 
-    npx hardhat run --network kovan scripts/deploy-kovan-yfbond.js
-    
-### Update kovan-manualEpochInit.js and execute to test Epochs
-Update line 12 of the kovan-manualEpochInit.js file with the staking address given by your deploy-kovan.js execution, and run it
-
-    npx hardhat run --network rinkeby scripts/kovan-manualEpochInit.js
-
+    npm run manual-epoch-init-env
 
 ## MainNet Contracts
 

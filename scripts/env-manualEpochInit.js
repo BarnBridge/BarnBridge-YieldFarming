@@ -1,15 +1,15 @@
 const { ethers } = require('hardhat')
-
+require('dotenv').config()
 async function main () {
     const tokens = [
-        '0x4A69d0F05c8667B993eFC2b500014AE1bC8fD958', // Kovan USDC test token
-        '0xED159a31184ADADC5c28CE5D9e4822ea2b0B6ef9', // Kovan sUSD test token
-        '0x95fD7265D5a4d8705d62A5840c5a0d69e019DCe4', // Kovan DAI test token
-        '0xe594D2B3BeA4454D841e5b616627dCA6A5D7aCF1', // Kovan UniSwap V2 Pair
-        '0x521EE0CeDbed2a5A130B9218551fe492C5c402e4', // Kovan BOND test token
+        process.env.USDC,
+        process.env.SUSD,
+        process.env.DAI,
+        process.env.UNILP,
+        process.env.BOND,
     ]
 
-    const _staking = '0x90D5a6dFab1314D1f7248Ef5833B80051ed8b2b2' // Kovan BOND staking
+    const _staking = '0x90D5a6dFab1314D1f7248Ef5833B80051ed8b2b2' // BOND staking address given by deploy-from-env.js
     const s = await ethers.getContractAt('Staking', _staking)
 
     const currentEpoch = parseInt(await s.getCurrentEpoch())
