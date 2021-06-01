@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { NetworksUserConfig } from "hardhat/types";
 import { EtherscanConfig } from "@nomiclabs/hardhat-etherscan/dist/src/types";
 
@@ -7,12 +8,11 @@ export const networks: NetworksUserConfig = {
         url: "http://localhost:8555"
     },
 
-    // Kovan
-    kovan: {
-        url: "https://kovan.infura.io/v3/YOUR-INFURA-API-KEY",
-        chainId: 42,
+    env_network: {
+        url: 'https://' + process.env.CHAIN + '.infura.io/v3/' + process.env.INFURA,
+        chainId: Number(process.env.CHAINID),
         accounts: {
-            mnemonic: "your kovan mnemonic, get kovan eth for gas first",
+            mnemonic: process.env.MNEMONIC,
             path: "m/44'/60'/0'/0",
             initialIndex: 0,
             count: 10
@@ -36,5 +36,5 @@ export const networks: NetworksUserConfig = {
 // Use to verify contracts on Etherscan
 // https://buidler.dev/plugins/nomiclabs-buidler-etherscan.html
 export const etherscan: EtherscanConfig = {
-    apiKey: "YOUR-ETHERSCAN-API-KEY"
+    apiKey: process.env.ETHERSCAN
 };
