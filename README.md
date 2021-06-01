@@ -27,8 +27,6 @@ Check out more detailed smart contract Slither graphs with all the dependencies:
 ### Use Git to pull down the BarnBridge-SmartYieldBonds repository from GitHub
     git clone https://github.com/BarnBridge/BarnBridge-YieldFarming.git
     cd BarnBridge-YieldFarming
-### Create config.ts using the sample template config.sample.ts
-    cp config.sample.ts config.ts
 
 ## Updating the .env file
 ### Create an API key with Infura to deploy to Ethereum Public Testnet. In this guide, we are using Kovan.
