@@ -13,7 +13,9 @@
         "lint:fix": "npm run lint:ts:fix",
         "lint:ts": "eslint . --ext .ts",
         "lint:ts:fix": "eslint . --ext .ts --fix",
-        "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\""
+        "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
+        "deploy-from-env": "hardhat clean && hardhat run --network env_network scripts/deploy_from_env.js",
+        "manual-epoch-init-env": "hardhat run --network env_network scripts/env-manualEpochInit.js"
     },
     "author": "BarnBridge",
     "license": "Apache-2",
@@ -29,6 +31,7 @@
         "@types/node": "^14.14.6",
         "chai": "^4.2.0",
         "chai-bignumber": "^3.0.0",
+        "dotenv": "^10.0.0",
         "eslint": "^6.8.0",
         "eslint-config-standard": "^14.1.1",
         "eslint-plugin-import": "^2.20.2",
