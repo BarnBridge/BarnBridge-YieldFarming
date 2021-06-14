@@ -9,7 +9,7 @@ export const networks: NetworksUserConfig = {
     },
 
     env_network: {
-        url: 'https://' + process.env.CHAIN + '.infura.io/v3/' + process.env.INFURA,
+        url: process.env.PROVIDER,
         chainId: Number(process.env.CHAINID),
         accounts: {
             mnemonic: process.env.MNEMONIC,
@@ -24,7 +24,7 @@ export const networks: NetworksUserConfig = {
 
     // Mainnet
     mainnet: {
-        url: "https://mainnet.infura.io/v3/YOUR-INFURA-KEY",
+        url: process.env.PROVIDER,
         chainId: 1,
         accounts: ["0xaaaa"],
         gas: "auto",
