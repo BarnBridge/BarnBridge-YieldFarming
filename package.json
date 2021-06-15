@@ -14,7 +14,7 @@
         "lint:ts": "eslint . --ext .ts",
         "lint:ts:fix": "eslint . --ext .ts --fix",
         "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
-        "deploy-from-env": "hardhat clean && hardhat run --network env_network scripts/deploy_from_env.js",
+        "deploy-from-env": "hardhat clean && hardhat run --network env_network scripts/deploy-from-env.js",
         "manual-epoch-init-env": "hardhat run --network env_network scripts/env-manualEpochInit.js"
     },
     "author": "BarnBridge",
