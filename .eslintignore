@@ -1,7 +1,0 @@
-artifacts/
-build/
-cache/
-coverage/
-node_modules/
-
-buidler.config.js
